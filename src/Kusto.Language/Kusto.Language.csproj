@@ -1,8 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <KustoProps Condition="Exists('..\Directory.Build.props')">true</KustoProps>
+    <TargetFramework>net5.0</TargetFramework>
+     <KustoProps Condition="Exists('..\Directory.Build.props')">true</KustoProps> 
   </PropertyGroup>
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="'$(KustoProps)' != 'true'" />
+   <!--<Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="'$(KustoProps)' != 'true'" />--> 
   <PropertyGroup>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -47,5 +48,5 @@
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" Condition="!Exists('..\Directory.Build.targets')" />
+   <!--<Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" Condition="!Exists('..\Directory.Build.targets')" />--> 
 </Project>
