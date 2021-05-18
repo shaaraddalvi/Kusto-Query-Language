@@ -1,5 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
     <KustoProps Condition="Exists('..\Directory.Build.props')">true</KustoProps>
   </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="'$(KustoProps)' != 'true'" />
