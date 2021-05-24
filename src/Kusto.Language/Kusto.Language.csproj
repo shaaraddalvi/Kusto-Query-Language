@@ -21,7 +21,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <GenerateDocumentation>true</GenerateDocumentation>
-    <DocumentationFile>$(OutputPath)\$(AssemblyName).XML</DocumentationFile>
+    <DocumentationFile>C:\Users\t-avineshlnu\Avinesh\docfile.XML</DocumentationFile>
     <!-- This is a missing documentation comment warning: disabling -->
     <NoWarn>1591</NoWarn>
   </PropertyGroup>
