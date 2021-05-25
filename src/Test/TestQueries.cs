@@ -14,9 +14,10 @@ namespace Test
                                         "T | where a > 10; T1 | where b > 10",
                                         "T | summarize temp = count() by a | project p = a+temp",
                                         "T | where a memberof([\"@T1/b\"])",
-                                        "T | where a == 0 or b == 0"
+                                        "T | where a == 0 or b == 0",
+                                        "T | where a memberof([\"@T1/b\" \"@T2/c\" \"@T2/d\"])",
         };
-        static string statement = statements[7];
+        static string statement = statements[9];
         public static void tree()
         {
             var query = KustoCode.Parse(statement);

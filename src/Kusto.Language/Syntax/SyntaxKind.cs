@@ -207,6 +207,7 @@
         MaterializeKeyword,
         MaterializedViewCombineKeyword,
         MdmKeyword,
+        MemberofOperator,
         MemoryKeyword,
         MergeKeyword,
         MetadataKeyword,
@@ -593,6 +594,7 @@
         SearchExpression,
         HasAnyExpression,
         HasAllExpression,
+        MemberofExpression,
 
         // common command-related expressions & clauses
         TypedColumnReference,

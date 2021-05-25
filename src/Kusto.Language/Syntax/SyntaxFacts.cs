@@ -238,6 +238,7 @@ namespace Kusto.Language.Syntax
                 new SyntaxData(SyntaxKind.MaterializeKeyword, "materialize"),
                 new SyntaxData(SyntaxKind.MaterializedViewCombineKeyword, "materialized-view-combine"),
                 new SyntaxData(SyntaxKind.MdmKeyword, "mdm"),
+                new SyntaxData(SyntaxKind.MemberofOperator, "memberof"),
                 new SyntaxData(SyntaxKind.MemoryKeyword, "memory", canBeIdentifier: true),
                 new SyntaxData(SyntaxKind.MergeKeyword, "merge", canBeIdentifier: true),
                 new SyntaxData(SyntaxKind.MetadataKeyword, "metadata", canBeIdentifier: true),
@@ -623,6 +624,8 @@ namespace Kusto.Language.Syntax
                 new SyntaxData(SyntaxKind.JsonPair, "", SyntaxCategory.Node),
                 new SyntaxData(SyntaxKind.JsonArrayExpression, "", SyntaxCategory.Node),
                 new SyntaxData(SyntaxKind.DynamicExpression, "", SyntaxCategory.Node),
+
+                new SyntaxData(SyntaxKind.MemberofExpression, "", SyntaxCategory.Node),
 
                 // common query-related expressions & clauses
                 new SyntaxData(SyntaxKind.TypedColumnReference, "", SyntaxCategory.Node),

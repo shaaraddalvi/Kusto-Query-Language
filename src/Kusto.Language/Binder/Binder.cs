@@ -2004,6 +2004,8 @@ namespace Kusto.Language.Binding
                     return OperatorKind.HasAny;
                 case SyntaxKind.HasAllExpression:
                     return OperatorKind.HasAll;
+                case SyntaxKind.MemberofExpression:
+                    return OperatorKind.Memberof;
                 default:
                     return OperatorKind.None;
             }

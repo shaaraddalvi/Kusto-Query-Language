@@ -2077,12 +2077,25 @@ namespace Kusto.Language.Parsing
                         case SyntaxKind.NotBetweenKeyword:
                             expr = new BetweenExpression(SyntaxKind.NotBetweenExpression, expr, ParseToken(), ParseRequiredExpressionCouple());
                             continue;
+                        case SyntaxKind.MemberofOperator:
+                            expr = new BinaryExpression(SyntaxKind.MemberofExpression, expr, ParseToken(), ParseMemberofParameters());
+                            break;
                         default:
                             return expr;
                     }
                 }
             }
 
+            return expr;
+        }
+
+        private Expression ParseMemberofParameters()
+        {
+            var open_paren = ParseRequiredToken(SyntaxKind.OpenParenToken);
+            var open_bracket = ParseRequiredToken(SyntaxKind.OpenBracketToken);
+            var expr = ParseStringOrCompoundStringLiteral();
+            var close_bracket = ParseRequiredToken(SyntaxKind.CloseBracketToken);
+            var close_brace = ParseRequiredToken(SyntaxKind.CloseParenToken);
             return expr;
         }
 

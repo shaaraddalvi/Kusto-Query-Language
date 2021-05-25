@@ -43,6 +43,9 @@ namespace Kusto.Language
                     new Parameter("left", ParameterTypeKind.StringOrDynamic, ArgumentKind.Star),
                     new Parameter("right", ScalarTypes.String)));
 
+        public static readonly OperatorSymbol Memberof = 
+            new OperatorSymbol(OperatorKind.Memberof, new Signature(ScalarTypes.Bool, new Parameter("left", ScalarTypes.Unknown), new Parameter("right", ScalarTypes.String)));
+
         public static readonly OperatorSymbol UnaryMinus =
             new OperatorSymbol(OperatorKind.UnaryMinus,
                     new Signature(ReturnTypeKind.Parameter0, new Parameter("operand", ParameterTypeKind.Summable)),
@@ -382,6 +385,7 @@ namespace Kusto.Language
             NotBetween,
             HasAny,
             HasAll,
+            Memberof,
         };
     }
 }
