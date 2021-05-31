@@ -356,7 +356,7 @@ namespace Kusto.Language.Binding
                         {
                             var dx = DiagnosticFacts.GetTokenMustBeIdentity();
                             List<Diagnostic> diagnostics = semanticInfo.Diagnostics.ToList();
-                            diagnostics.Add(dx);
+                            diagnostics.Add(dx.WithLocation(node.Left.TextStart, node.Left.End - node.Left.TextStart));
 
                             return semanticInfo.WithDiagnostics(diagnostics.AsReadOnly());
                         }

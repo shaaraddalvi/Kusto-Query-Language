@@ -2104,22 +2104,28 @@ namespace Kusto.Language.Parsing
 
             var closeBracket = ParseToken(SyntaxKind.CloseBracketToken) ?? CreateMissingToken(SyntaxKind.CloseBracketToken);
             var closeParen = ParseToken(SyntaxKind.CloseParenToken) ?? CreateMissingToken(SyntaxKind.CloseParenToken);
-            var temp = separatedParameters[0].Element; // type expression
-            var temp1 = temp.GetFirstToken();
+
+            List<Diagnostic> diag = new List<Diagnostic>();
+
+            if (openParen.HasSyntaxDiagnostics)
+                diag.Add(openParen.SyntaxDiagnostics[0]);
+            if (openBracket.HasSyntaxDiagnostics)
+                diag.Add(openBracket.SyntaxDiagnostics[0]);
+            if (closeBracket.HasSyntaxDiagnostics)
+                diag.Add(closeBracket.SyntaxDiagnostics[0]);
+            if (closeParen.HasSyntaxDiagnostics)
+                diag.Add(closeParen.SyntaxDiagnostics[0]);
 
             Func<SeparatedElement, SyntaxToken> TokenFromSeparatedElements = x => {
                 var y = x.Element.GetFirstToken();
 
+                if (x.Separator != null && x.Separator.HasSyntaxDiagnostics)
+                    diag.Add(x.Separator.SyntaxDiagnostics[0]);
+
                 return SyntaxToken.Literal(y.Trivia, y.Text, y.Kind, y.SyntaxDiagnostics);
             };
 
-            var temp2 = new CompoundStringLiteralExpression(new SyntaxList<SyntaxToken>(separatedParameters.Select(TokenFromSeparatedElements).ToList()));
-            
-            return temp2;
-
-            //return new CompoundStringLiteralExpression(separatedParameters);
-
-            //return CreateMissingStringLiteral();
+            return new CompoundStringLiteralExpression(new SyntaxList<SyntaxToken>(separatedParameters.Select(TokenFromSeparatedElements).ToList(), diag));
         }
 
         private ExpressionList ParseRequiredInOperatorExpressionList()
