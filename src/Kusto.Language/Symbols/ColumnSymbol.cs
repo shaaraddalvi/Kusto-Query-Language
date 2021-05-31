@@ -23,8 +23,8 @@ namespace Kusto.Language.Symbols
 
         public override SymbolKind Kind => SymbolKind.Column;
 
-        public ColumnSymbol(string name, TypeSymbol type, string description = null)
-            : base(name)
+        public ColumnSymbol(string name, TypeSymbol type, string description = null, bool identity = false)
+            : base(name, identity)
         {
             this.Type = type ?? throw new ArgumentNullException(nameof(type));
             this.Description = description ?? "";

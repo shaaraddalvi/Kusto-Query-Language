@@ -2091,12 +2091,35 @@ namespace Kusto.Language.Parsing
 
         private Expression ParseMemberofParameters()
         {
-            var open_paren = ParseRequiredToken(SyntaxKind.OpenParenToken);
-            var open_bracket = ParseRequiredToken(SyntaxKind.OpenBracketToken);
-            var expr = ParseStringOrCompoundStringLiteral();
-            var close_bracket = ParseRequiredToken(SyntaxKind.CloseBracketToken);
-            var close_brace = ParseRequiredToken(SyntaxKind.CloseParenToken);
-            return expr;
+            var openParen = ParseToken(SyntaxKind.OpenParenToken) ?? CreateMissingToken(SyntaxKind.OpenParenToken);
+            var openBracket = ParseToken(SyntaxKind.OpenBracketToken) ?? CreateMissingToken(SyntaxKind.OpenBracketToken);
+
+            Func<QueryParser,Expression> parseStringLiteral = (qp) => {
+                if(qp.PeekToken().Kind == SyntaxKind.StringLiteralToken)
+                        return new LiteralExpression(SyntaxKind.StringLiteralExpression, qp.ParseToken());
+                else 
+                    return null;
+            };
+
+            var tokens = new List<SyntaxToken>();
+
+            var element = ParseToken(SyntaxKind.StringLiteralToken) ?? CreateMissingToken(SyntaxKind.StringLiteralToken);
+            tokens.Add(element);
+
+            while(!ScanCommonListEnd())
+            {
+                if(PeekToken().Kind != SyntaxKind.CommaToken && PeekToken().Kind != SyntaxKind.StringLiteralToken)
+                    break;
+                var commaToken = ParseToken(SyntaxKind.CommaToken) ?? CreateMissingToken(SyntaxKind.CommaToken);
+
+                element = ParseToken(SyntaxKind.StringLiteralToken) ?? CreateMissingToken(SyntaxKind.StringLiteralToken);
+                tokens.Add(element);
+            }
+
+            var closeBracket = ParseToken(SyntaxKind.CloseBracketToken) ?? CreateMissingToken(SyntaxKind.CloseBracketToken);
+            var closeParen = ParseToken(SyntaxKind.CloseParenToken) ?? CreateMissingToken(SyntaxKind.CloseParenToken);
+            
+            return new CompoundStringLiteralExpression(new SyntaxList<SyntaxToken>(tokens));
         }
 
         private ExpressionList ParseRequiredInOperatorExpressionList()

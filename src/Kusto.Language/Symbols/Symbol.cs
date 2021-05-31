@@ -19,9 +19,24 @@ namespace Kusto.Language.Symbols
         /// </summary>
         public virtual SymbolKind Kind => SymbolKind.None;
 
+        ///<summary>
+        ///Whether the symbol is an identity field or not
+        ///Applicable only for <see cref="ColumnSymbol"/>
+        ///</summary>
+        public bool IsIdentity { get; }
+
         protected Symbol(string name)
         {
             this.Name = name ?? "";
+        }
+
+        protected Symbol(string name, bool identity)
+        {
+            this.Name = name ?? "";
+
+            if(this.Kind != SymbolKind.Column)
+                throw new Exception("Only ColumnSymbol can be an identity field");
+            this.IsIdentity = identity;
         }
 
         /// <summary>

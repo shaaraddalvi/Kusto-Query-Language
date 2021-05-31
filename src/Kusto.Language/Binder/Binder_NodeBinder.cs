@@ -348,7 +348,21 @@ namespace Kusto.Language.Binding
                 var opKind = GetOperatorKind(node.Kind);
                 if (opKind != OperatorKind.None)
                 {
-                    return _binder.GetBinaryOperatorInfo(opKind, node.Left, node.Right, node.Operator);
+                    var semanticInfo = _binder.GetBinaryOperatorInfo(opKind, node.Left, node.Right, node.Operator);
+
+                    if(node.Kind == SyntaxKind.MemberofExpression)
+                    {
+                        if(!node.Left.ReferencedSymbol.IsIdentity)
+                        {
+                            var dx = DiagnosticFacts.GetTokenMustBeIdentity();
+                            List<Diagnostic> diagnostics = semanticInfo.Diagnostics.ToList();
+                            diagnostics.Add(dx);
+
+                            return semanticInfo.WithDiagnostics(diagnostics.AsReadOnly());
+                        }
+                    }
+                    
+                    return semanticInfo;
                 }
                 else
                 {

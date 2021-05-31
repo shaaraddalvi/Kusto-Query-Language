@@ -694,6 +694,11 @@ namespace Kusto.Language
             return new Diagnostic("KS206", "The argument value must be orderable: a number, timespan, datetime, string or boolean.");
         }
 
+        public static Diagnostic GetTokenMustBeIdentity()
+        {
+            return new Diagnostic("KS207", "The column field must be an identity field");
+        }
+
         #region command diagnostics
         public static Diagnostic GetMissingCommand()
         {
