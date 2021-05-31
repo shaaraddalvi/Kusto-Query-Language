@@ -1201,6 +1201,25 @@ namespace Kusto.Language.Parsing
                     (openParen, list, closeParen) =>
                         new ExpressionList(openParen, list, closeParen));
 
+            var MemberofParameterList = 
+                Rule(
+                    Token(SyntaxKind.OpenParenToken),
+                    Token(SyntaxKind.OpenBracketToken),
+                    CommaList(StringLiteral, MissingStringLiteralNode, true),
+                    Token(SyntaxKind.CloseBracketToken),
+                    Token(SyntaxKind.CloseParenToken),
+
+                    (openParen, openBracket, list, closeBracket, closeParen) => {
+                        return new CompoundStringLiteralExpression(
+                            new SyntaxList<SyntaxToken>(
+                                list.Select( x => {
+                                    var y = x.Element.GetFirstToken();
+                                    return SyntaxToken.Literal(y.Trivia, y.Text, y.Kind, y.SyntaxDiagnostics);
+                                }).ToList()
+                            )
+                        );
+                    });
+
             var Equality =
                 First(
                     Rule(Token(SyntaxKind.AsteriskToken).Hide(), Token(SyntaxKind.EqualEqualToken), Relational, (asterisk, equal, expression) =>
@@ -1239,7 +1258,10 @@ namespace Kusto.Language.Parsing
                                 (left, op, right) => (Expression)new BetweenExpression(SyntaxKind.BetweenExpression, left, op, right)),
 
                             Rule(_left, Token(SyntaxKind.NotBetweenKeyword, CompletionKind.ScalarInfix, ctext: SyntaxFacts.GetText(SyntaxKind.NotBetweenKeyword) + " (|)"), ExpressionCouple,
-                                (left, op, right) => (Expression)new BetweenExpression(SyntaxKind.NotBetweenExpression, left, op, right))
+                                (left, op, right) => (Expression)new BetweenExpression(SyntaxKind.NotBetweenExpression, left, op, right)),
+                                
+                            Rule(_left, Token(SyntaxKind.MemberofOperator, CompletionKind.ScalarInfix, ctext: SyntaxFacts.GetText(SyntaxKind.MemberofOperator) + " (|)"), MemberofParameterList,
+                                (left, op, right) => (Expression)new BinaryExpression(SyntaxKind.MemberofExpression, left , op, right))
                             )));
 
             var LogicalAnd =

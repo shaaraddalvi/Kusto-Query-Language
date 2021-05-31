@@ -238,7 +238,7 @@ namespace Kusto.Language.Syntax
                 new SyntaxData(SyntaxKind.MaterializeKeyword, "materialize"),
                 new SyntaxData(SyntaxKind.MaterializedViewCombineKeyword, "materialized-view-combine"),
                 new SyntaxData(SyntaxKind.MdmKeyword, "mdm"),
-                new SyntaxData(SyntaxKind.MemberofOperator, "memberof"),
+                new SyntaxData(SyntaxKind.MemberofOperator, "memberof", opKind: OperatorKind.Memberof),
                 new SyntaxData(SyntaxKind.MemoryKeyword, "memory", canBeIdentifier: true),
                 new SyntaxData(SyntaxKind.MergeKeyword, "merge", canBeIdentifier: true),
                 new SyntaxData(SyntaxKind.MetadataKeyword, "metadata", canBeIdentifier: true),
