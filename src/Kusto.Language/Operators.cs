@@ -44,7 +44,7 @@ namespace Kusto.Language
                     new Parameter("right", ScalarTypes.String)));
 
         public static readonly OperatorSymbol Memberof = 
-            new OperatorSymbol(OperatorKind.Memberof, new Signature(ScalarTypes.Bool, new Parameter("left", ScalarTypes.Unknown), new Parameter("right", ScalarTypes.String)));
+            new OperatorSymbol(OperatorKind.Memberof, new Signature(ScalarTypes.Bool, new Parameter("left", ScalarTypes.String), new Parameter("right", ScalarTypes.String)));
 
         public static readonly OperatorSymbol UnaryMinus =
             new OperatorSymbol(OperatorKind.UnaryMinus,
