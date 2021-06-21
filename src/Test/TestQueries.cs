@@ -8,7 +8,7 @@ namespace Test
     {
         public static void tree(string statement)
         {
-            var query = KustoCode.Parse(statement);
+            var query = KustoCode.ParseAndAnalyze(statement);
             string text = query.Text;
             Console.WriteLine(text);
             var root = query.Syntax;
@@ -25,7 +25,7 @@ namespace Test
         const Kusto.Language.Syntax.SyntaxKind LongLiteralExpression = Kusto.Language.Syntax.SyntaxKind.LongLiteralExpression;
         const string Add = "AddExpression";
         const string Subtract = "SubtractExpression";
-        const string Multiply = "MutiplyExpression";
+        const string Multiply = "MultiplyExpression";
         const string Divide = "DivideExpression";
         const string Equal = "EqualExpression";
         const string GreaterThan = "GreaterThanExpression";
@@ -55,7 +55,13 @@ namespace Test
         List<string> mathOperators = new List<string>();
         List<string> summarizeByColumns = new List<string>();
         List<string> orderByColumns = new List<string>();
-        
+        Dictionary<string, List<string>> hash_Select = new Dictionary<string, List<string>>();
+        Dictionary<string, List<string>> hash_From = new Dictionary<string, List<string>>();
+        List<string> projectColumns = new List<string>();
+        List<string> takeLiterals = new List<string>();
+        List<string> takeMathOperators = new List<string>();
+
+
 
 
         string tableName = "";  // there can be multiple table names also - will consider these cases later. 
@@ -278,9 +284,13 @@ namespace Test
             }
             return output;
         }
+        List<string> WhereAndOr = new List<string>();
+        List<string> WhereExpressions = new List<string>();
+
+
         public void traverseTree(string kqlQuery)
         {
-            var query = KustoCode.Parse(kqlQuery);
+            var query = KustoCode.ParseAndAnalyze(kqlQuery);
             var root = query.Syntax;
             Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n => {
 
@@ -291,14 +301,24 @@ namespace Test
                 if (n.Kind == ProjectOperator)
                 {
                     isProjectOperatorPresent = true;
+                    projectColumns = TokenNames(n.ToString());
+                    hash_Select.Add("project", projectColumns);
                 }
                 if (n.Kind == TakeOperator)
                 {
                     isTakeOperatorPresent = true;
+                    takeLiterals = LiteralValues(n.ToString());
+                    hash_Select.Add("takeLiterals", takeLiterals);
+                    takeMathOperators = MathOperators(n.ToString());
+                    hash_Select.Add("takeMathOperators", takeMathOperators);
+
                 }
                 if (n.Kind == WhereOperator)
                 {
                     isWhereOperatorPresent = true;
+                    WhereAndOr = whereInfo(n.ToString());// this will be a reverse list.
+
+
                 }
                 if (n.Kind == SummarizeOperator)
                 {
@@ -343,14 +363,14 @@ namespace Test
                 {
                     allTokenNames.Add(n.ToString());
                 }
-                if (n.Kind.ToString() == Add | n.Kind.ToString() == Subtract | n.Kind.ToString() == Multiply | n.Kind.ToString() == Divide)
+                /*if (n.Kind.ToString() == Add | n.Kind.ToString() == Subtract | n.Kind.ToString() == Multiply | n.Kind.ToString() == Divide)
                 {
                     isMathOperatorsPresent = true;
                     if (n.Kind.ToString() == Add) mathOperators.Add("+");
                     else if (n.Kind.ToString() == Subtract) mathOperators.Add("-");
                     else if (n.Kind.ToString() == Multiply) mathOperators.Add("*");
                     else if (n.Kind.ToString() == Divide) mathOperators.Add("/");
-                }
+                }*/
             }, n => { });
             var tokens = Kusto.Language.Parsing.TokenParser.ParseTokens(nodeByClause, false);
             for (int i = 0; i < tokens.Length; i++)
@@ -386,7 +406,8 @@ namespace Test
 
          }*/
 
-        public static Boolean CheckInTree(string input_query, string findKind)
+        
+        public Boolean CheckInTree(string input_query, string findKind)
         {
             // It will help me generalize for looking for any kind of operator in tree. 
             var query = KustoCode.Parse(input_query);
@@ -403,7 +424,7 @@ namespace Test
             return checkIfPresent;
 
         }
-        public static List<string> TokenNames(string input_query)
+        public List<string> TokenNames(string input_query)
         {
             List<string> tokenNames = new List<string>();
             var query = KustoCode.Parse(input_query);
@@ -416,10 +437,221 @@ namespace Test
             }, n => { });
             return tokenNames;
         }
+        public List<string> LiteralValues(string input_query)
+        {
+            List<string> literalValues = new List<string>();
+            var query = KustoCode.Parse(input_query);
+            var root = query.Syntax;
+            Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n => {
+                if (n.Kind == Kusto.Language.Syntax.SyntaxKind.LongLiteralExpression)
+                {
+                    literalValues.Add(n.ToString());
+                }
+            }, n => { });
+            return literalValues;
+        }
+
+        public List<string> whereInfo(string input)
+        {
+            List<string> whereAndOr = new List<string>();
+            if((!input.Contains("and")) & (!input.Contains("or")))
+            {
+                string temp = input.Remove(0 , 6);
+                WhereExpressions.Add(temp);
+            }
+            var query = KustoCode.Parse(input);
+            var root = query.Syntax;
+            Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n => {
+                if (n.Kind == Kusto.Language.Syntax.SyntaxKind.AndExpression)
+                {
+                    whereAndOr.Add("AND");
+                    WhereExpressions.Add(n.GetChild(2).ToString());
+                    if((!n.GetChild(0).ToString().Contains("and")) & (!n.GetChild(0).ToString().Contains("or")))
+                    {
+                        WhereExpressions.Add(n.GetChild(0).ToString());
+                    }
+                }
+                if (n.Kind == Kusto.Language.Syntax.SyntaxKind.OrExpression)
+                {
+                    whereAndOr.Add("OR");
+                    WhereExpressions.Add(n.GetChild(2).ToString());
+                    if ((!n.GetChild(0).ToString().Contains("and")) & (!n.GetChild(0).ToString().Contains("or")))
+                    {
+                        WhereExpressions.Add(n.GetChild(0).ToString());
+                    }
+                }
+                if(n.Kind == Kusto.Language.Syntax.SyntaxKind.FunctionCallExpression)
+                {
+
+                }
+                
+                
+            }, n => { });
+            return whereAndOr;
+        }
+        
+        public List<string> MathOperators(string input_query)
+        {
+            List<string> mathOperators = new List<string>();
+            var query = KustoCode.Parse(input_query);
+            var root = query.Syntax;
+            Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n => {
+                if (n.Kind.ToString() == Add) mathOperators.Add("+");
+                if (n.Kind.ToString() == Subtract) mathOperators.Add("-");
+                if (n.Kind.ToString() == Multiply) mathOperators.Add("*");
+                if (n.Kind.ToString() == Divide) mathOperators.Add("/");
+            }, n => { });
+            return mathOperators;
+        }
+
+
+        List<string> selectData = new List<string>();
+        // Dictionary<string, List<string> > hash_Select = 
+        List<string> fromData = new List<string>();
+        List<string> whereData = new List<string>();
+        List<string> groupByData = new List<string>();
+        public string gettingSqlQueryNew(string kqlQuery)
+        {
+            traverseTree(kqlQuery);
+            fromData.Add(allTokenNames[0]);
+            string output = "";
+            if (hash_Select.Count == 0)
+            {
+                output += "SELECT";
+                output += " ";
+                // no specified columns to select => select all columns G
+                output += "*";
+            }
+            if (hash_Select.Count != 0)
+            {
+                // * can be there in case of take operator // G
+                output += "SELECT";
+                if (hash_Select.ContainsKey("takeLiterals"))
+                {
+                    output += " TOP ";
+                    List<string> take_Literals = hash_Select.GetValueOrDefault("takeLiterals");
+                    List<string> take_mathOperators = hash_Select.GetValueOrDefault("takeMathOperators");
+                    if(take_mathOperators.Count == 0)
+                    {
+                        output = addListElements(take_Literals, output);
+                    }
+                    else
+                    {
+                        for (int i = 0; i < take_Literals.Count; i++)
+                        {
+                            if (i != take_Literals.Count - 1)
+                                output += take_Literals[i] + take_mathOperators[i];
+                            else output += take_Literals[i];
+                        }
+                    }   
+                    
+                
+                }
+                if (hash_Select.ContainsKey("project"))
+                {
+                    List<string> project_Columns = hash_Select.GetValueOrDefault("project");
+                    output = addListElements(project_Columns, output);
+                    
+                }
+                if(hash_Select.ContainsKey("summarize"))
+                {
+
+                }
+                // add other also if possible
+                if((!hash_Select.ContainsKey("project")) & (!hash_Select.ContainsKey("summarize"))) // add other conditions if possible
+                {
+                    output += " * ";
+                }
+
+
+            }
+            if (fromData.Count != 0)
+            {
+                // will look at maximum tables later 
+                output += " FROM ";
+                for (int i = 0; i < fromData.Count; i++)
+                {
+                    output += fromData[i];
+                    if (i != fromData.Count - 1) output += "' ";
+                }
+
+            }
+            //if (whereData.Count != 0) // where a > 6 and b < 5 or c >2
+            if(isWhereOperatorPresent)
+            {
+                output += " WHERE ";
+                WhereAndOr.Reverse();
+                WhereExpressions.Reverse();
+                for(int i = 0; i < WhereExpressions.Count; i++)
+                {
+                    output += whereConvertExpressions(WhereExpressions[i]);
+                    if (i != WhereExpressions.Count-1 )
+                    {
+                        output += " " + WhereAndOr[i];
+                    }
+                }
+            }
+            return output;
+        }
+
+        public string whereConvertExpressions(string input)
+        {
+            
+            // for function calls in the where operator
+            if(checkFunctionPresent(input)) return functionCheckwhere(input);
+            else return input;
+            // Need to work more on it
+
+        }
+        public string functionCheckwhere(string input)
+        {
+            string output = "";
+            var query = KustoCode.Parse(input);
+            var root = query.Syntax;
+            Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n => {
+                if(n.Kind == Kusto.Language.Syntax.SyntaxKind.FunctionCallExpression)
+                {
+                    if(n.GetChild(0).ToString() == " isnotnull")
+                    {
+                        List<string> tokenColumns = TokenNames(n.GetChild(1).ToString());
+                        output = addListElements(tokenColumns, output);
+                        output += " IS NOT NULL ";
+                    }
+                }
+            }, n => { });
+            return output;
+        }
+        public Boolean checkFunctionPresent(string input)
+        {
+            Boolean ifPresent = false;
+            var query = KustoCode.Parse(input);
+            var root = query.Syntax;
+            Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n => {
+                if (n.Kind == Kusto.Language.Syntax.SyntaxKind.FunctionCallExpression)
+                {
+                    ifPresent = true;
+                }
+            }, n => { });
+            return ifPresent;
+        }
 
 
 
- 
+        public string addListElements(List<string> list, string output)
+        {
+            string temp = output;
+            for(int i = 0; i < list.Count; i++)
+            {
+                temp += list[i];
+                if (i != list.Count - 1) temp += ", ";
+            }
+            return temp;
+        }
+
+
+
+
+
 
 
 
