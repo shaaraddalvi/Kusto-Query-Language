@@ -20,7 +20,8 @@ namespace Test
                                                     "T | where isnotnull(resultCode)",
                                                     "T | project a | where isnotnull(resultCode)",
                                                     //"T | where a == 2",
-
+                                                    "T | where a > 10 | where b > 5",
+                                                    "T | where a > 10 | where isnotnull(resultCode)  ",
                                                     "T | summarize by name, type",// 12
                                                     "T | summarize max(salary)",
                                                     "T | summarize min(salary)",
@@ -37,7 +38,7 @@ namespace Test
                                                          };
             // Next to work on 
             // Generalization done for these queriesG
-            /*string input = queries[21];
+           /* string input = queries[13];
             Console.WriteLine(input);
             TestQueries.tree(input);
             TestQueries test = new TestQueries();

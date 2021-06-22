@@ -64,15 +64,13 @@ namespace Test
         List<string> projectColumns = new List<string>();
         List<string> takeLiterals = new List<string>();
         List<string> takeMathOperators = new List<string>();
-
-
+        List<List<string>> allWhereAndOr = new List<List<string>>();
+        List<List<string>> allWhereExpressions = new List<List<string>>();
 
 
         string tableName = "";  // there can be multiple table names also - will consider these cases later. 
         
-        List<string> WhereAndOr = new List<string>();
-        List<string> WhereExpressions = new List<string>();
-
+       
 
         public void traverseTree(string kqlQuery)
         {
@@ -102,8 +100,10 @@ namespace Test
                 if (n.Kind == WhereOperator)
                 {
                     isWhereOperatorPresent = true;
-                    WhereAndOr = whereInfo(n.ToString());// this will be a reverse list.
+                   // this will be a reverse list.
+                    allWhereAndOr.Add(whereInfo(n.ToString()));
 
+                    allWhereExpressions.Add(whereInfoExpressions(n.ToString()));
 
                 }
                 if (n.Kind == SummarizeOperator)
@@ -227,7 +227,7 @@ namespace Test
             if((!input.Contains("and")) & (!input.Contains("or")))
             {
                 string temp = input.Remove(0 , 6);
-                WhereExpressions.Add(temp);
+               
             }
             var query = KustoCode.Parse(input);
             var root = query.Syntax;
@@ -235,20 +235,12 @@ namespace Test
                 if (n.Kind == Kusto.Language.Syntax.SyntaxKind.AndExpression)
                 {
                     whereAndOr.Add("AND");
-                    WhereExpressions.Add(n.GetChild(2).ToString());
-                    if((!n.GetChild(0).ToString().Contains("and")) & (!n.GetChild(0).ToString().Contains("or")))
-                    {
-                        WhereExpressions.Add(n.GetChild(0).ToString());
-                    }
+                    
                 }
                 if (n.Kind == Kusto.Language.Syntax.SyntaxKind.OrExpression)
                 {
                     whereAndOr.Add("OR");
-                    WhereExpressions.Add(n.GetChild(2).ToString());
-                    if ((!n.GetChild(0).ToString().Contains("and")) & (!n.GetChild(0).ToString().Contains("or")))
-                    {
-                        WhereExpressions.Add(n.GetChild(0).ToString());
-                    }
+                  
                 }
                 if(n.Kind == Kusto.Language.Syntax.SyntaxKind.FunctionCallExpression)
                 {
@@ -258,6 +250,44 @@ namespace Test
                 
             }, n => { });
             return whereAndOr;
+        }
+        public List<string> whereInfoExpressions(string input)
+        {
+            List<string> whereExpressions = new List<string>();
+            if ((!input.Contains("and")) & (!input.Contains("or")))
+            {
+                string temp = input.Remove(0, 6);
+                whereExpressions.Add(temp);
+            }
+            var query = KustoCode.Parse(input);
+            var root = query.Syntax;
+            Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n => {
+                if (n.Kind == Kusto.Language.Syntax.SyntaxKind.AndExpression)
+                {
+                    
+                    whereExpressions.Add(n.GetChild(2).ToString());
+                    if ((!n.GetChild(0).ToString().Contains("and")) & (!n.GetChild(0).ToString().Contains("or")))
+                    {
+                        whereExpressions.Add(n.GetChild(0).ToString());
+                    }
+                }
+                if (n.Kind == Kusto.Language.Syntax.SyntaxKind.OrExpression)
+                {
+                   
+                    whereExpressions.Add(n.GetChild(2).ToString());
+                    if ((!n.GetChild(0).ToString().Contains("and")) & (!n.GetChild(0).ToString().Contains("or")))
+                    {
+                        whereExpressions.Add(n.GetChild(0).ToString());
+                    }
+                }
+                if (n.Kind == Kusto.Language.Syntax.SyntaxKind.FunctionCallExpression)
+                {
+
+                }
+
+
+            }, n => { });
+            return whereExpressions;
         }
 
         public List<string> summarizeGetFunctions(string input)
@@ -389,15 +419,11 @@ namespace Test
             if(isWhereOperatorPresent)
             {
                 output += " WHERE ";
-                WhereAndOr.Reverse();
-                WhereExpressions.Reverse();
-                for(int i = 0; i < WhereExpressions.Count; i++)
+                for(int i = 0; i < allWhereAndOr.Count; i++)
                 {
-                    output += whereConvertExpressions(WhereExpressions[i]);
-                    if (i != WhereExpressions.Count-1 )
-                    {
-                        output += " " + WhereAndOr[i];
-                    }
+                    string t = where(allWhereAndOr[i],allWhereExpressions[i] );
+                    output += t;
+                    if (i != allWhereAndOr.Count - 1) output += " AND ";
                 }
             }
             if(hash_Select.ContainsKey("summarize"))
@@ -419,6 +445,23 @@ namespace Test
             }
 
             return output;
+        }
+
+        public string where(List<string> whereAndOr, List<string> WhereExpressions )
+        {
+            //string temp = " WHERE ";
+            string temp = "";
+            whereAndOr.Reverse();
+            WhereExpressions.Reverse();
+            for (int i = 0; i < WhereExpressions.Count; i++)
+            {
+                temp += whereConvertExpressions(WhereExpressions[i]);
+                if (i != WhereExpressions.Count - 1)
+                {
+                    temp += " " + whereAndOr[i];
+                }
+            }
+            return temp;
         }
 
         public string whereConvertExpressions(string input)
