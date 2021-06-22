@@ -27,19 +27,23 @@ namespace Test
                                                     "T | summarize max(salary),min(stocks), max(workingHours) ",
                                                     "T | summarize sum(salary) ",
                                                     "T | summarize stdev(salary) ",
-                                                    "T | summarize variance(salary) by state ",
+                                                    "T | summarize max(salary),variance(salary) by state ",
                                                     "T | summarize max(salary), sum(salary), stdev(salary)",
                                                     "T | summarize avg(duration) by name", 
                                                     "T | project name, timestamp| order by timestamp desc nulls last",
+                                                    "T | summarize sum(salary) by state | take 50 | where salary = 100 and state> 6"
                                                     
-                                                    
+                                                   
                                                          };
             // Next to work on 
             // Generalization done for these queriesG
-            //string input = queries[2];
-            //Console.WriteLine(input);
-            //TestQueries.tree(input);G
-            for (int i = 0; i < 12; i++)
+            /*string input = queries[21];
+            Console.WriteLine(input);
+            TestQueries.tree(input);
+            TestQueries test = new TestQueries();
+            string output = (test.gettingSqlQueryNew(input));
+            Console.WriteLine(output);*/
+            for (int i = 0; i <  queries.Length; i++)
             {
                 string input = queries[i];
                 Console.WriteLine(input);
@@ -48,16 +52,7 @@ namespace Test
                 string output = (test.gettingSqlQueryNew(input));
                 Console.WriteLine(output);
             }
-            // Generalization still left
-            for (int i = 12; i < queries.Length; i++)
-            {
-                string input = queries[i];
-                Console.WriteLine(input);
-                //TestQueries.tree(input);
-                TestQueries test = new TestQueries();
-                string output = (test.GetSqlQuery(input));
-                Console.WriteLine(output);
-            }
+            
 
 
 

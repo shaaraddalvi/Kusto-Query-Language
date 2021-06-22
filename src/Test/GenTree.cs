@@ -18,10 +18,10 @@ namespace Test
                 --depth;
                 Console.WriteLine(n.ToString() + "\t[" + depth + "]\t\t" + (kind ? n.Kind : "") + "\t" +n.ChildCount+
                     "\t" +" " + (refSymb ? n.ReferencedSymbol : ""));
-                /*if(n.ChildCount == 2)
+                if(n.ChildCount == 4)
                 {
-                    Console.WriteLine( n.GetChild(0) + "First "+ " "+ n.GetChild(1)+"Mid");
-                }*/
+                    Console.WriteLine( n.GetChild(0) + "First "+ " "+ n.GetChild(1)+"Mid" + n.GetChild(2) + n.GetChild(3));
+                }
                 
                 
 

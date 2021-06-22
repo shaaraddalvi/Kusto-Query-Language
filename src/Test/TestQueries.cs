@@ -14,6 +14,10 @@ namespace Test
             var root = query.Syntax;
             GenTree.traverse(root, true);
         }
+        /// <summary>
+        /// Suggestions --> 
+        /// 1. Can make a general function(input , typeKind) return list 
+        /// </summary>
         const Kusto.Language.Syntax.SyntaxKind ProjectOperator = Kusto.Language.Syntax.SyntaxKind.ProjectOperator;
         const Kusto.Language.Syntax.SyntaxKind TakeOperator = Kusto.Language.Syntax.SyntaxKind.TakeOperator;
         const Kusto.Language.Syntax.SyntaxKind WhereOperator = Kusto.Language.Syntax.SyntaxKind.FilterOperator;
@@ -65,225 +69,7 @@ namespace Test
 
 
         string tableName = "";  // there can be multiple table names also - will consider these cases later. 
-        public string GetSqlQuery(string kqlQuery)
-        {
-            traverseTree(kqlQuery);
-            if (allTokenNames.Count == 0) return "";
-            tableName = allTokenNames[0]; // assuming single table names for now. 
-            string output = "";
-            if (numPipeExpression == 0)
-            {
-                // no keyword present eg -> "Table_name"
-                output += "SELECT * FROM " + tableName;
-                return output;
-            }
-            if (numPipeExpression == 1)
-            {
-                // sinle keyword present  -> need to look if more than one keywords possible in this - will see later
-                if (isProjectOperatorPresent)
-                {
-                    string columns = "";
-                    for (int i = 1; i < allTokenNames.Count; i++)
-                    {
-                        if (i != allTokenNames.Count - 1)
-                        {
-                            columns += allTokenNames[i];
-                            columns += ",";
-                        }
-                        else
-                        {
-                            columns += allTokenNames[i];
-                        }
-                    }
-                    output = "SELECT" + columns + " FROM " + tableName;
-                    return output;
-                }
-                if (isTakeOperatorPresent)
-                {
-                    if (!isMathOperatorsPresent)
-                    {
-                        output += "SELECT TOP " + allLongLiteralsNames[0] + " * FROM " + tableName;
-                    }
-                    if (isMathOperatorsPresent)
-                    {
-                        String str = "";
-                        for (int i = 0; i < allLongLiteralsNames.Count; i++)
-                        {
-                            if (i != allLongLiteralsNames.Count - 1) str += allLongLiteralsNames[i] + " " + mathOperators[i];
-                            else str += allLongLiteralsNames[i];
-                        }
-                        output += "SELECT TOP " + str + " * FROM " + tableName;
-                        return output;
-                    }
-                }
-                if (isWhereOperatorPresent)
-                {
-                    if (allPunctuationNames.Contains(GreaterThan) & allTokenNames.Count == 2 & isLongLiteralPresent) // second condition is to check if column name is present to compare
-                    {
-                        output += "SELECT * FROM " + tableName + " WHERE " + allTokenNames[1] + " >" + allLongLiteralsNames[0];
-                        return output;
-                    }
-                    if (isFunctionCallPresent & allFunctioCallNames.Count == 1 & allTokenNames.Count == 3)
-                    {
-                        if (allFunctioCallNames[0][0] == " isnotnull")
-                        {
-                            output += "SELECT * FROM " + tableName + " WHERE " + allFunctioCallNames[0][1] +" " + SQL.notNull;
-                            return output;
-                        }
-                        // can add other functions
-                    }
-                    // need to add double equal punctuation case. 
-                }
-                
-                if(isSumaarizeOperatorPresent & isFunctionCallPresent)
-                {
-                    output += "SELECT ";
-                    if(onlyFunctionNames.Contains(" max") | onlyFunctionNames.Contains(" min") | onlyFunctionNames.Contains(" sum") | onlyFunctionNames.Contains(" stdev") | onlyFunctionNames.Contains(" variance"))
-                    {
-                        for(int i = 0; i < onlyFunctionNames.Count; i++)
-                        {
-                            if(onlyFunctionNames[i] == " max" | onlyFunctionNames[i] == "max")
-                            {
-                                output += "MAX" + "(" + allFunctioCallNames[i][1] + ") ";
-                                if (i != onlyFunctionNames.Count - 1) output += ",";
-                            }
-                            if (onlyFunctionNames[i] == " min" | onlyFunctionNames[i] == "min")
-                            {
-                                output += "MIN" + "(" + allFunctioCallNames[i][1] + ") ";
-                                if (i != onlyFunctionNames.Count - 1) output += ",";
-                            }
-                            if (onlyFunctionNames[i] == " sum" | onlyFunctionNames[i] == "sum")
-                            {
-                                output += "SUM" + "(" + allFunctioCallNames[i][1] + ") ";
-                                if (i != onlyFunctionNames.Count - 1) output += ",";
-                            }
-                            if (onlyFunctionNames[i] == " stdev" | onlyFunctionNames[i] == "stdev")
-                            {
-                                output += "STDEV" + "(" + allFunctioCallNames[i][1] + ") ";
-                                if (i != onlyFunctionNames.Count - 1) output += ",";
-                            }
-                            if (onlyFunctionNames[i] == " variance" | onlyFunctionNames[i] == "variance")
-                            {
-                                output += "VAR" + "(" + allFunctioCallNames[i][1] + ") ";
-                                if (i != onlyFunctionNames.Count - 1) output += ",";
-                            }
-
-
-                        }
-                        
-
-                        //int index = onlyFunctionNames.IndexOf(" max");
-                        //output += "MAX" + "(" + allFunctioCallNames[index][1] + ") " + " FROM " + tableName;
-                    }
-                    if (onlyFunctionNames.Contains(" avg"))
-                    {
-                        int index = onlyFunctionNames.IndexOf(" avg");
-                        for (int i = 0; i < summarizeByColumns.Count; i++)
-                        {
-                            if (i == summarizeByColumns.Count - 1)
-                            {
-                                output += summarizeByColumns[i];
-                            }
-                            else output += summarizeByColumns[i] + ",";
-                        }
-                        var list = allFunctioCallNames[index];
-                        output += " ," + SQL.average + "(";
-                        for (int i = 1; i < list.Count; i++)
-                        {
-                            if (i == list.Count - 1)
-                            {
-                                output += list[i];
-                            }
-                            else output += list[i] + ",";
-                        }
-                        output += ")";
-                    }
-                    output += " FROM " + tableName;
-                    if (isSumaarizeByClausePresent)
-                    {
-                        output += " GROUP BY ";
-                        for(int i = 0; i < summarizeByColumns.Count; i++)
-                        {
-                            output += summarizeByColumns[i];
-                            if (i != summarizeByColumns.Count - 1) output += ",";
-                        }
-                    }
-                    return output;
-                }
-                if (isSumaarizeOperatorPresent & isSumaarizeByClausePresent & !isFunctionCallPresent)
-                {
-                    output += "SELECT DISTINCT ";
-                    for (int i = 1; i < allTokenNames.Count; i++)
-                    {
-                        output += allTokenNames[i];
-                        if (i != allTokenNames.Count - 1) output += ",";
-                    }
-                    output += " FROM " + tableName;
-                    return output;
-                }
-                /*if (isSumaarizeOperatorPresent & isSumaarizeByClausePresent & isFunctionCallPresent)
-                {
-                    output += "SELECT ";
-                    if (onlyFunctionNames.Contains(" avg"))
-                    {
-                        int index = onlyFunctionNames.IndexOf(" avg");
-                        for (int i = 0; i < summarizeByColumns.Count; i++)
-                        {
-                            if (i == summarizeByColumns.Count - 1)
-                            {
-                                output += summarizeByColumns[i];
-                            }
-                            else output += summarizeByColumns[i] + ",";
-                        }
-                        var list = allFunctioCallNames[index];
-                        output += " ," +  SQL.average + "(";
-                        for (int i = 1; i < list.Count; i++)
-                        {
-                            if (i == list.Count - 1)
-                            {
-                                output += list[i];
-                            }
-                            else output += list[i] + ",";
-                        }
-                        output += ") FROM " + tableName;
-                        output += " GROUP BY ";
-                        for (int i = 0; i < summarizeByColumns.Count; i++)
-                        {
-                            if (i == summarizeByColumns.Count - 1)
-                            {
-                                output += summarizeByColumns[i];
-                            }
-                            else output += summarizeByColumns[i] + ",";
-                        }
-                    }
-                    return output;
-                }*/
-            }
-            if (numPipeExpression == 2)
-            {
-                if (isProjectOperatorPresent & isOrderByPresent)
-                {
-                    // project query part is called
-                    int result = kqlQuery.LastIndexOf('|');// find index position of second '|',then create a substring of it, and call project query
-                    string subProjectPart = kqlQuery.Substring(0, result);
-                    TestQueries t = new TestQueries();
-                    output += t.GetSqlQuery(subProjectPart);
-                    output += " ORDER BY ";
-                    for (int i = 0; i < orderByColumns.Count; i++)
-                    {
-                        if (i == orderByColumns.Count - 1)
-                        {
-                            output += orderByColumns[i];
-                        }
-                        else output += orderByColumns[i] + ",";
-                    }
-                    if (orderType == descending) output += " DESC";
-                    if (orderType == ascending) output += " ASC";
-                    return output;
-                }
-            }
-            return output;
-        }
+        
         List<string> WhereAndOr = new List<string>();
         List<string> WhereExpressions = new List<string>();
 
@@ -323,12 +109,13 @@ namespace Test
                 if (n.Kind == SummarizeOperator)
                 {
                     isSumaarizeOperatorPresent = true;
+                    hash_Select.Add("summarize", summarizeGetFunctions(n.ToString()) );// list of all fucntion calls
                 }
                 if (n.Kind == SummarizeByClause)
                 {
                     isSumaarizeByClausePresent = true;
                     nodeByClause = n.ToString();
-                    //summarizeByColumns = TokenNames(n.ToString());
+                    summarizeByColumns = TokenNames(n.ToString());
                 }
                 if (n.Kind == SortOperator)
                 {
@@ -389,24 +176,7 @@ namespace Test
 
 
 
-        /* public static Boolean checkNoKeyword(string input_string)
-         {
-             var query = KustoCode.Parse(input_string);
-             var root = query.Syntax;
-             Boolean noKeywordPresent = true;
-             Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n => {
-
-                 if (n.Kind.ToString() == "PipeExpression" )
-                 {
-                     noKeywordPresent = false;
-
-                 }
-             }, n => { });
-             return noKeywordPresent;
-
-         }*/
-
-        
+       
         public Boolean CheckInTree(string input_query, string findKind)
         {
             // It will help me generalize for looking for any kind of operator in tree. 
@@ -489,6 +259,20 @@ namespace Test
             }, n => { });
             return whereAndOr;
         }
+
+        public List<string> summarizeGetFunctions(string input)
+        {
+            List<string> list = new List<string>();
+            var query = KustoCode.Parse(input);
+            var root = query.Syntax;
+            Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n => {
+                if(n.Kind == Kusto.Language.Syntax.SyntaxKind.FunctionCallExpression)
+                {
+                    list.Add(n.ToString());
+                }
+            }, n => { });
+            return list;
+        }
         
         public List<string> MathOperators(string input_query)
         {
@@ -555,7 +339,32 @@ namespace Test
                 }
                 if(hash_Select.ContainsKey("summarize"))
                 {
-
+                    List<string> summarizeFunctions = hash_Select.GetValueOrDefault("summarize");
+                    // check if by is present - if not --> "DISTINCT", else simply add functions
+                    // for now I am using summarizeBy columns list, I can change if iI want later
+                    if(summarizeFunctions.Count == 0)
+                    {
+                        output += " DISTINCT ";
+                        output = addListElements(summarizeByColumns, output);
+                    }
+                    else
+                    {
+                        output += " ";
+                        if (summarizeByColumns.Count != 0)output = addListElements(summarizeByColumns, output);
+                        
+                        for(int i = 0; i < summarizeFunctions.Count; i++ )
+                        {
+                            output += ",";
+                            output += processFunction(summarizeFunctions[i]);
+                            
+                        }
+                        /*if(summarizeByColumns.Count != 0)
+                        {
+                            output += " GROUP BY ";
+                            output = addListElements(summarizeByColumns, output);
+                        }*/
+                        
+                    }
                 }
                 // add other also if possible
                 if((!hash_Select.ContainsKey("project")) & (!hash_Select.ContainsKey("summarize"))) // add other conditions if possible
@@ -591,6 +400,24 @@ namespace Test
                     }
                 }
             }
+            if(hash_Select.ContainsKey("summarize"))
+            {
+                if (hash_Select.GetValueOrDefault("summarize").Count != 0 & summarizeByColumns.Count != 0)
+                {
+                    output += " GROUP BY ";
+                    output = addListElements(summarizeByColumns, output);
+                }
+            }
+
+            
+            if(isOrderByPresent)
+            {
+                output += " ORDER BY ";
+                output = addListElements(orderByColumns, output);
+                if (orderType == ascending) output += " ASC ";
+                if (orderType == descending) output += " DESC ";
+            }
+
             return output;
         }
 
@@ -603,6 +430,58 @@ namespace Test
             // Need to work more on it
 
         }
+
+        public string processFunction(string input)
+        {
+            string temp = "";
+            var query = KustoCode.Parse(input);
+            var root = query.Syntax;
+            Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n => {
+                if (n.Kind == Kusto.Language.Syntax.SyntaxKind.FunctionCallExpression)
+                {
+                    string funcName = n.GetChild(0).ToString();
+                    string funcArument = n.GetChild(1).ToString();
+                    if(funcName == "max" | funcName == " max")
+                    {
+                        temp += "MAX";
+                        
+                    }
+                    if (funcName == "min" | funcName == " min")
+                    {
+                        temp += "MIN";
+                    }
+                    if (funcName == "sum" | funcName == " sum")
+                    {
+                        temp += "SUM";
+                    }
+                    if (funcName == "avg" | funcName == " avg")
+                    {
+                        temp += "AVG";
+                    }
+                    if (funcName == "stdev" | funcName == " stdev")
+                    {
+                        temp += "STDEV";
+                    }
+                    if (funcName == "variance" | funcName == " variance")
+                    {
+                        temp += "VAR";
+                    }
+                    temp += "(";
+                    List<string> tokens = TokenNames(funcArument);
+                    string temp1 = processFunction(funcName);
+                    if (temp1 != "") temp += temp1;
+                    else
+                    {
+                        temp = addListElements(tokens, temp);
+                    }
+
+                    temp += ")";
+                }
+            }, n => { });
+            return temp;
+        }
+
+
         public string functionCheckwhere(string input)
         {
             string output = "";
