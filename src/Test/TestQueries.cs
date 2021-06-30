@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Kusto.Language;
+using System.Text;
 
 namespace Test
 {
@@ -72,8 +73,38 @@ namespace Test
         Kusto.Language.Syntax.SyntaxElement otherTableInfo_Join;
         Kusto.Language.Syntax.SyntaxElement onInfo_Join;
         string tableName = "";  // there can be multiple table names also - will consider these cases later. 
-        string[] aggregateFunctions = { "max", "min", "sum", "count", "avg" , "stdev", "variance"};
-       
+        string[] aggregateFunctions = { "max", "min", "sum", "count", "avg", "stdev", "variance" };
+        string processedInput = "";
+        Dictionary<string, string> nestedTables = new Dictionary<string, string>();
+        public void preProcessTraverseTree(string kqlQuery)
+        {
+            processedInput = kqlQuery;
+            var query = KustoCode.ParseAndAnalyze(kqlQuery);
+            var root = query.Syntax;
+            Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n => 
+            {
+                if(n.Kind.ToString() == "FilterOperator")
+                {
+                    Kusto.Language.Syntax.SyntaxElement newTable = CheckInTree(n, "PipeExpression");
+                    if (newTable != null)
+                    {
+                        processedInput = processedInput.Replace(newTable.Parent.ToString(), "newTable");
+                        nestedTables.Add("newTable", newTable.ToString());
+                    }
+                }
+                /*if (n.Kind.ToString() == "JoinOperator")
+                {
+                    Kusto.Language.Syntax.SyntaxElement newTable = CheckInTree(n.GetChild(2), "PipeExpression");
+                    if (newTable != null)
+                    {
+                        processedInput = processedInput.Replace(newTable.Parent.ToString(), "(newTable)");
+                        nestedTables.Add("newTable", newTable.ToString());
+                    }
+                }*/
+
+            }, n => { });
+            
+        }
 
         public void traverseTree(string kqlQuery)
         {
@@ -91,15 +122,16 @@ namespace Test
                     isProjectOperatorPresent = true;
                     projectColumns = TokenNames(n.ToString());
                     hash_Select.Add("project", projectColumns);
+                    orderOperatorsSelect.Add("project");
                 }
-                if (n.Kind == TakeOperator)
+                if (n.Kind == TakeOperator | n.Kind.ToString() == "TopOperator")
                 {
                     isTakeOperatorPresent = true;
                     takeLiterals = LiteralValues(n.ToString());
                     hash_Select.Add("takeLiterals", takeLiterals);
                     takeMathOperators = MathOperators(n.ToString());
                     hash_Select.Add("takeMathOperators", takeMathOperators);
-
+                    orderOperatorsSelect.Add("takeLiterals");
                 }
                 if (n.Kind == WhereOperator)
                 {
@@ -108,7 +140,7 @@ namespace Test
                     allWhereAndOr.Add(whereInfoAboutAndOr(n.ToString()));
 
                     allWhereExpressions.Add(whereInfoExpressions(n.ToString()));
-                    separateWhereHaving();
+                    //separateWhereHaving();
                 }
                 if (n.Kind == SummarizeOperator)
                 {
@@ -125,7 +157,7 @@ namespace Test
                     // List<string> individualExpressions = divideExpressionsSummarizeNode((Kusto.Language.Syntax.SyntaxNode)n.GetChild(2));
                     //hash_Select.Add("summarize", individualExpressions );//--> need to make all types to be syntaxElement
                     hash_Select.Add("summarize", new List<string>());
-
+                    orderOperatorsSelect.Add("summarize");
                     //List<Kusto.Language.Syntax.SyntaxElement> list_nodes = SeparatedElements(n.GetChild(2));
                     // Cannot use this concept as it will include separated elements of function calls as well
 
@@ -219,12 +251,13 @@ namespace Test
             Kusto.Language.Syntax.SyntaxElement node = null;
             var query = KustoCode.Parse(input_query);
             var root = query.Syntax;
+            int i = 0;
             Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n => {
 
-                if (n.Kind.ToString() == findKind)
+                if (i == 0 & n.Kind.ToString() == findKind)
                 {
                     node = n;
-
+                    i++;
                 }
             }, n => { });
             return node;
@@ -235,13 +268,13 @@ namespace Test
         {
             // It will help me generalize for looking for any kind of operator in tree. 
             Kusto.Language.Syntax.SyntaxElement node = null;
-          
+            int i = 0;
             Kusto.Language.Syntax.SyntaxElement.WalkNodes((Kusto.Language.Syntax.SyntaxNode)root_node, n => {
 
-                if (n.Kind.ToString() == findKind)
+                if (i == 0 & n.Kind.ToString() == findKind)
                 {
                     node = n;
-
+                    i++;
                 }
             }, n => { });
             return node;
@@ -390,12 +423,13 @@ namespace Test
         }
         public List<string> whereInfoExpressions(string input)
         {
+            input = input.TrimStart();
             List<string> whereExpressions = new List<string>();
-            if ((!input.Contains("and")) & (!input.Contains("or")))
+            /*if ((!input.Contains("and")) & (!input.Contains("or")))
             {
                 string temp = input.Remove(0, 6);
                 whereExpressions.Add(temp);
-            }
+            }*/
             var query = KustoCode.Parse(input);
             var root = query.Syntax;
             Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n => {
@@ -424,6 +458,11 @@ namespace Test
 
 
             }, n => { });
+            if(whereExpressions.Count == 0)
+            {
+                string temp = input.Remove(0, 6);
+                whereExpressions.Add(temp);
+            }
             return whereExpressions;
         }
 
@@ -506,6 +545,7 @@ namespace Test
         List<string> fromData = new List<string>();
         List<string> whereData = new List<string>();
         List<string> groupByData = new List<string>();
+        List<string> orderOperatorsSelect = new List<string>();
         public string selectInfo()
         {
             string output = "";
@@ -518,79 +558,107 @@ namespace Test
             if (hash_Select.Count != 0)
             { 
                 output += "SELECT";
-                if (hash_Select.ContainsKey("takeLiterals"))
+                for(int i = 0;  i < orderOperatorsSelect.Count; i++)
                 {
-                    output += " TOP ";
-                    List<string> take_Literals = hash_Select.GetValueOrDefault("takeLiterals");
-                    List<string> take_mathOperators = hash_Select.GetValueOrDefault("takeMathOperators");
-                    if (take_mathOperators.Count == 0)
-                    {
-                        output = addListElements(take_Literals, output);
-                    }
-                    else
-                    {
-                        for (int i = 0; i < take_Literals.Count; i++)
-                        {
-                            if (i != take_Literals.Count - 1)
-                                output += take_Literals[i] + take_mathOperators[i];
-                            else output += take_Literals[i];
-                        }
-                    }
+                    string str = orderOperatorsSelect[i];
+                    if (str == "takeLiterals") output = takeTopLimitOperator(output);
+                    else if (str == "summarize") output = summarizeOperator(output);
                 }
-                if (hash_Select.ContainsKey("project"))
-                {
-                    List<string> project_Columns = hash_Select.GetValueOrDefault("project");
-                    output = addListElements(project_Columns, output);
-
-                }
-                if (hash_Select.ContainsKey("summarize"))
-                {
-                    // List<string> summarizeExpressions = hash_Select.GetValueOrDefault("summarize");
-                    List<Kusto.Language.Syntax.SyntaxElement> summarizeExpressions = individualExpressions;
-                    if (summarizeExpressions.Count == 0)
-                    {
-                        output += " DISTINCT ";
-                        //output = addListElements(summarizeByColumns, output);
-                        List<Kusto.Language.Syntax.SyntaxElement> temp = hash_GroupBy.GetValueOrDefault("SeparatedExpressions");
-                        List<string> convertedTemp = NameRefFunCall(temp);
-                        for (int k = 0; k < convertedTemp.Count; k++)
-                        {
-                            output += convertedTemp[k];
-
-                        }
-                        //output = addListElements(convertedTemp, output);
-                    }
-                    else
-                    {
-                        output += " ";
-                        if (summarizeByColumns.Count != 0)
-                        {
-                            //output = addListElements(summarizeByColumns, output);
-                            List<Kusto.Language.Syntax.SyntaxElement> temp = hash_GroupBy.GetValueOrDefault("SeparatedExpressions");
-                            List<string> convertedTemp = NameRefFunCall(temp);
-                            if(convertedTemp != null)
-                            {
-                                for (int k = 0; k < convertedTemp.Count; k++)
-                                {
-                                     output += convertedTemp[k];
-
-                                }
-                               
-                            }
-                            output += ",";
-
-                            //output = addListElements(convertedTemp, output);
-                        }
-                       
-                        List<string> convertedExpr = NameRefFunCall(individualExpressions);
-                        output = addListElements(convertedExpr, output);
-                        
-                    }
-                }
+                //if (!hash_Select.ContainsKey("project") & output.Length > 0) output = output.Remove(output.Length - 1);
+                output = projectOperator(output);
+                
                 // add other also if possible
                 if ((!hash_Select.ContainsKey("project")) & (!hash_Select.ContainsKey("summarize"))) // add other conditions if possible
                 {
                     output += " * ";
+                }
+                
+            }
+            return output;
+        }
+        public string takeTopLimitOperator(string output)
+        {
+            //string output = "";
+            if (hash_Select.ContainsKey("takeLiterals"))
+            {
+                output += " TOP ";
+                List<string> take_Literals = hash_Select.GetValueOrDefault("takeLiterals");
+                List<string> take_mathOperators = hash_Select.GetValueOrDefault("takeMathOperators");
+                if (take_mathOperators.Count == 0)
+                {
+                    output = addListElements(take_Literals, output);
+                }
+                else
+                {
+                    for (int i = 0; i < take_Literals.Count; i++)
+                    {
+                        if (i != take_Literals.Count - 1)
+                            output += take_Literals[i] + take_mathOperators[i];
+                        else output += take_Literals[i];
+                    }
+                }
+            }
+            return output;
+        }
+        public string projectOperator(string output)
+        {
+            //string output = "";
+            if (hash_Select.ContainsKey("project"))
+            {
+                List<string> project_Columns = hash_Select.GetValueOrDefault("project");
+                for (int i = 0; i < projectColumns.Count; i++)
+                {
+                    if (output.Contains(projectColumns[i]))
+                    {
+                        projectColumns.RemoveAt(i); i--;
+                    }
+                }
+                if (projectColumns.Count == 0) output = output.Remove(output.Length - 1);
+                output = addListElements(project_Columns, output);
+            }
+            else if(output.Length > 0 & output[output.Length - 1] == ',') output = output.Remove(output.Length - 1);
+            return output;
+        }
+
+        public string summarizeOperator(string output)
+        {
+            //string output = "";
+            if (hash_Select.ContainsKey("summarize"))
+            {
+                // List<string> summarizeExpressions = hash_Select.GetValueOrDefault("summarize");
+                List<Kusto.Language.Syntax.SyntaxElement> summarizeExpressions = individualExpressions;
+                if (summarizeExpressions.Count == 0)
+                {
+                    output += " DISTINCT ";
+                    //output = addListElements(summarizeByColumns, output);
+                    List<Kusto.Language.Syntax.SyntaxElement> temp = hash_GroupBy.GetValueOrDefault("SeparatedExpressions");
+                    List<string> convertedTemp = NameRefFunCall(temp);
+                    for (int k = 0; k < convertedTemp.Count; k++)
+                    {
+                        output += convertedTemp[k];
+
+                    }
+                    //output = addListElements(convertedTemp, output);
+                }
+                else
+                {
+                    output += " ";
+                    if (summarizeByColumns.Count != 0)
+                    {
+                        //output = addListElements(summarizeByColumns, output);
+                        List<Kusto.Language.Syntax.SyntaxElement> temp = hash_GroupBy.GetValueOrDefault("SeparatedExpressions");
+                        List<string> convertedTemp = NameRefFunCall(temp);
+                        output = addListElements(convertedTemp, output);
+
+                        output += ",";
+
+                        //output = addListElements(convertedTemp, output);
+                    }
+
+                    List<string> convertedExpr = NameRefFunCall(individualExpressions);
+                    output = addListElements(convertedExpr, output);
+                    output += ",";
+
                 }
                 
             }
@@ -654,6 +722,12 @@ namespace Test
                             output += info[1][1];
                         }
                     }
+                    if(nestedTables.Count != 0)
+                    {
+                        TestQueries t = new TestQueries();
+                        output.Replace("newTable", t.gettingSqlQueryNew(nestedTables.GetValueOrDefault("newTableJoin")));
+                    }
+                    
                 }
 
             }
@@ -742,7 +816,15 @@ namespace Test
             //groupByNameDeclarations.Add(name_ref);
             Kusto.Language.Syntax.SyntaxElement node_funCall = CheckInTree(node_nameref, "FunctionCallExpression");
             string name_funcall = "";
-            if (node_funCall != null) name_funcall = processFunction(node_funCall.ToString());
+            if (node_funCall != null)
+            {
+                Dictionary<string, string> map = processFunction_(node_funCall.ToString());
+                name_funcall = node_funCall.ToString();
+                foreach (string key in map.Keys)
+                {
+                    name_funcall = name_funcall.Replace(key, map[key]);
+                }
+            }
             else name_funcall = CheckInTree(node_nameref, "NameReference").ToString();
             temp += name_funcall + " AS " + name_ref;
             return temp;
@@ -762,6 +844,7 @@ namespace Test
                     str = str.Replace(key , map[key]);
                 }
                 output += str;
+                output = output.Replace("==", "=");
                 if (i != havingExpressions.Count - 1) output += " AND ";
             }
             return output;
@@ -784,15 +867,26 @@ namespace Test
 
         public string gettingSqlQueryNew(string kqlQuery)
         {
-            traverseTree(kqlQuery);
-            
+            preProcessTraverseTree(kqlQuery);
+            traverseTree(processedInput);
+            separateWhereHaving();
             string output = "";
             output += selectInfo();
             output += fromInfo();
+            string wherestring = whereInfo();
             output += whereInfo();
             output += groupByInfo();
             output += havingInfo();
             output += orderByInfo();
+            if (nestedTables.Count != 0)
+            {
+                TestQueries test_ = new TestQueries();
+                
+                string newTableConverted = test_.gettingSqlQueryNew(nestedTables.GetValueOrDefault("newTable"));
+               
+                output = output.Replace("newTable", "("+newTableConverted + ")");
+            }
+                
             return output;
         }
 
@@ -815,17 +909,34 @@ namespace Test
 
         public string whereConvertExpressions(string input)
         {
-            
+
             // for function calls in the where operator
-            if(checkFunctionPresent(input)) return functionCheckwhere(input);
-            string temp = "";
+            if (checkFunctionPresent(input))
+            {
+                Dictionary<string, string> map = processFunction_(input);
+                foreach (string key in map.Keys)
+                {
+                    input = input.Replace(key, map[key]);
+                }
+                input = input.Replace("==", "=");
+                return input;
+            }
+
+                string temp = "";
             if (CheckInTree(input, "InExpression") != null )
             {
                 //replace that with IN
                 Kusto.Language.Syntax.SyntaxElement node = CheckInTree(input, "InExpression");
                 temp += node.GetChild(0).ToString();
                 temp += " IN ";
-                temp += node.GetChild(2).ToString();
+                string str =  node.GetChild(2).ToString();
+                Dictionary<string, string> map = processFunction_(str);
+                foreach (string key in map.Keys)
+                {
+                    str = input.Replace(key, map[key]);
+                }
+                temp += str;
+                temp = temp.Replace("==", "=");
                 return temp;
             }
             if (CheckInTree(input, "NotInExpression") != null)
@@ -834,7 +945,14 @@ namespace Test
                 Kusto.Language.Syntax.SyntaxElement node = CheckInTree(input, "NotInExpression");
                 temp += node.GetChild(0).ToString();
                 temp += " NOT IN ";
-                temp += node.GetChild(2).ToString();
+                string str = node.GetChild(2).ToString();
+                Dictionary<string, string> map = processFunction_(str);
+                foreach (string key in map.Keys)
+                {
+                    str = input.Replace(key, map[key]);
+                }
+                temp += str;
+                temp = temp.Replace("==", "=");
                 return temp;
             }
             if (CheckInTree(input, "InCsExpression") != null)
@@ -844,8 +962,10 @@ namespace Test
                 temp += node.GetChild(0).ToString();
                 temp += " NOT IN ";
                 temp += node.GetChild(2).ToString();
+                //input = input.Replace("==", "=");
                 return temp;
             }
+            input = input.Replace("==", "=");
             return input;
             // Need to work more on it
 
@@ -945,28 +1065,86 @@ namespace Test
                 if (n.Kind == Kusto.Language.Syntax.SyntaxKind.FunctionCallExpression)
                 {
                     string temp = "";
-                    string funcName = n.GetChild(0).ToString();
-                    string funcArument = n.GetChild(1).ToString();
-                    if (funcName == "isdouble" | funcName == " isdouble")
+                    string funcName = n.GetChild(0).ToString().TrimStart().TrimEnd();
+                    string funcArument = n.GetChild(1).ToString().TrimStart().TrimEnd();
+                    funcArument = removeBrackets(funcArument).TrimStart().TrimEnd();
+                    if (funcName == "tolong")
                     {
-                        string temp_ = processFunction(funcArument);
-                        if (temp_ != "")
+                        funcArument = removeBrackets(funcArument).TrimStart().TrimEnd();
+                        temp += " CAST(";
+                        Kusto.Language.Syntax.SyntaxElement node = CheckInTree(funcArument, "FunctionCallExpression");
+                        if (node == null)
                         {
-                            // temp += "(";
-                            temp += temp_;
-                            // temp += ")";
+                            temp += funcArument + " as bigint ";
                         }
-                         if (temp_ == "")
-                         {
-                                List<string> tokens_ = TokenNames(funcArument);
+                        else
+                        {
+                            temp += processFunction(funcArument);
+                            temp += " as bigint";
+                        }
+                        temp += ")";
+                    }
 
-                                if (tokens_.Count == 1 & tokens_[0] == "") temp += "*";
-                                else temp = addListElements(tokens_, temp);
-                         }
 
-                         temp += "AS FLOAT";
+                    if (funcName == "todouble")
+                    {
+                        funcArument = removeBrackets(funcArument).TrimStart().TrimEnd();
+                        temp += " CAST(";
+                        Kusto.Language.Syntax.SyntaxElement node = CheckInTree(funcArument, "FunctionCallExpression");
+                        if (node == null)
+                        {
+                            temp += funcArument + " AS FLOAT ";
+                        }
+                        else
+                        {
+                            temp += processFunction(funcArument);
+                            temp += " AS FLOAT ";
+                        }
+                        temp += ")";
 
                     }
+                    if(funcName == "iff")
+                    {
+                        List<Kusto.Language.Syntax.SyntaxElement> list = SeparatedElements(n.GetChild(1));
+                        string condition = list[0].ToString().TrimEnd().TrimStart();
+                        condition = condition.Remove(condition.Length-1);
+                        Dictionary<string, string> temp1 = processFunction_(condition);
+                        foreach (string key in temp1.Keys)
+                        {
+                            condition = condition.Replace(key, temp1[key]);
+                        }
+                        string thenStatement = list[1].ToString().TrimStart().TrimEnd();
+                        thenStatement = thenStatement.Remove(thenStatement.Length - 1);
+                        Dictionary<string, string> temp2 = processFunction_(thenStatement);
+                        foreach (string key in temp2.Keys)
+                        {
+                            thenStatement = thenStatement.Replace(key, temp2[key]);
+                        }
+                        string elseStatement = list[2].ToString().TrimEnd().TrimStart();
+                        Dictionary<string, string> temp3 = processFunction_(elseStatement);
+                        foreach (string key in temp3.Keys)
+                        {
+                            elseStatement = elseStatement.Replace(key, temp3[key]);
+                        }
+                        temp += " CASE WHEN(" + condition + ")" + " THEN " + thenStatement + " ELSE " + elseStatement + " END";
+
+                    }
+                    if(funcName == "notnull")
+                    {
+                        Kusto.Language.Syntax.SyntaxElement node = CheckInTree(funcArument, "FunctionCallExpression");
+                        if (node == null)
+                        {
+                            temp += funcArument + " IS NOT NULL ";
+                        }
+                        else
+                        {
+                            temp += processFunction(funcArument);
+                            temp += " IS NOT NULL ";
+                        }
+                    }
+
+
+
                     if (String.Equals(funcName.TrimStart(), "max") | String.Equals(funcName.TrimStart(), "min") |  String.Equals(funcName.TrimStart(), "sum")  |
                         String.Equals(funcName.TrimStart(), "avg") |  String.Equals(funcName.TrimStart(), "stdev") | String.Equals(funcName.TrimStart(), "variance") | 
                         String.Equals(funcName.TrimStart(), "count"))
@@ -989,14 +1167,15 @@ namespace Test
                              temp += "COUNT";
                          }
                          temp += "(";
-                         List<string> tokens = TokenNames(funcArument);
-                         string temp1 = processFunction(funcArument);
-                         if (temp1 != "") temp += temp1;
-                         else
-                         {
-                                if (tokens.Count == 1 & tokens[0] == "") temp += "*";
-                                else temp = addListElements(tokens, temp);
-                         }
+                        //List<string> tokens = TokenNames(funcArument);
+                        funcArument = removeBrackets(funcArument).TrimStart().TrimEnd();
+                        Dictionary<string,string> temp1 = processFunction_(funcArument);
+                        foreach (string key in temp1.Keys)
+                        {
+                            funcArument = funcArument.Replace(key, temp1[key]);
+                        }
+                        temp += funcArument;
+                       
                          temp += ")";
                     }
                     map.Add(n.ToString(), temp);
@@ -1054,6 +1233,24 @@ namespace Test
                 if (i != list.Count - 1) temp += ", ";
             }
             return temp;
+        }
+
+        public string removeBrackets(string input)
+        {
+            if (input.Length < 2) return "";
+            if(input[0] == '(')
+            {
+                StringBuilder sb = new StringBuilder(input);
+                sb.Remove(0, 1);
+                input = sb.ToString();
+            }
+            if (input[input.Length-1] == ')')
+            {
+                StringBuilder sb = new StringBuilder(input);
+                sb.Remove(input.Length-1, 1);
+                input = sb.ToString();
+            }
+            return input;
         }
 
 

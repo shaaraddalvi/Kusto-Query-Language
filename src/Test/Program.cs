@@ -5,7 +5,18 @@ namespace Test
 {
     class Program //GGgGGGG
     {
-        static void Main(string[] args)
+        static string sample_query = "vw_PullRequest" +
+    "| where PartitionId == 1 and 0 == TimezoneOffset and CreatedDateSK >= 20210323 and CreatedDateSK <= 20210406 and RepositorySK in (tolong(1100))" +
+    "| where AuthorSK in ((ef_TeamUser" +
+                        "| where 1 == UserPartitionId and TeamSK == 1098" +
+                        "| project UserSK))" +
+
+    "| where notnull(AuthorSK)" +
+    "| summarize AvgTimeToOpen = avg(todouble(TimeToOpenInSeconds)), AvgTimeToMerge = avg(todouble(TimeToMergeInSeconds))," +
+                "SuccessCount = sum(iff(TimeToOpenInSeconds <= 25200, 1, 0)) by CreatedDateSK" +
+    "| project CreatedDateSK, AvgTimeToOpen, AvgTimeToMerge, SuccessCount" +
+    "| sort by CreatedDateSK asc nulls first";
+        static void Main(string[] args)// Gg
         {
             String[] queries = new String[] {      "T",
                                                     "T | project a",
@@ -21,6 +32,7 @@ namespace Test
                                                     "T | project a | where isnotnull(resultCode)",
                                                     "T | where a > 10 | where b > 5",
                                                     "T | where a > 10 | where isnotnull(resultCode)  ",
+                                                    "T | where 0 == avg(col)",
                                                     "T | summarize by name, type",
                                                     "T | summarize max(salary)",
                                                     "T | summarize min(salary)",
@@ -33,29 +45,41 @@ namespace Test
                                                     "T | summarize avg(duration) by name",
                                                     "T | project name, timestamp| order by timestamp desc nulls last",
                                                     "T | summarize sum(salary) by state | take 50 | where salary > 100 and state> 6",
+                                                    "T | summarize count() | limit 5",
                                                     "T | where col in ('value1', 'value2')",
                                                     "T | where col !in ('value1', 'value2')",
-                                                    //"T | where col in~ ('value1', 'value2')", //--> Need to figure out 
+                                                     "T | where a > tolong(1100)",
+                                                    "T | where a in (tolong(1100)) ",
+                                                     "T | where avg(todouble(a)) > 2",
+                                                     "T | project a | where avg(column) > 4",
+                                                    "T | project a | where avg(column) > 4 + column/2 +   max(column)",
+                                                    "T | where sum(iff(TimeToOpenInSeconds <= 25200, 1, 0)) == 3",
                                                     "T | summarize AvgD = avg(duration), SumD = sum(days) by Name=operationName",
                                                     "T | summarize AvgD = avg(duration), Count = count() by Name=operationName, RollNumber",
+                                                    "T | summarize AvgTimeToOpen=avg(todouble(TimeToOpenInSeconds)), AvgTimeToMerge=avg(todouble(TimeToMergeInSeconds)) | project CreatedDateSK, AvgTimeToOpen",
+                                                     "T | project a | where a== 1 and b in ((Table |  where a > 5 )) | where notnull(authorSK) ",
                                                     "T | join kind =  inner (exceptions) on $left.operation_Id == $right.operation_Id",
                                                     "T | join kind = rightouter  (exceptions) on $left.operation_Id == $right.operation_Id",
                                                     "T | join kind = fullouter  (exceptions) on $left.operation_Id == $right.operation_Id",
                                                     "T | join kind = leftouter  (exceptions) on $left.operation_Id == $right.operation_Id",
-                                                    "T | project a | where avg(column) > 4",
-                                                    "T | project a | where avg(column) > 4 + column/2 +   max(column)",
-                                                  //   "T | summarize Count = count() by name| take 100 by Count desc",//skipped tokens
+                                                    Program.sample_query
+
+
+
+
+
 
                                                          };
-            // Next to work on s
+        
+            // Next to work on sGG
             // Generalization done for these queriesG
-            /*string input = queries[14];
+            /*string input = queries[queries.Length- 4];
             Console.WriteLine(input);
             TestQueries.tree(input);
             TestQueries test = new TestQueries();
             string output = (test.gettingSqlQueryNew(input));
             Console.WriteLine(output);*/
-            for (int i = 0; i <  queries.Length; i++)
+            for (int i = 0; i <  queries.Length ; i++)
             {
                 string input = queries[i];
                 Console.WriteLine(input);
@@ -83,11 +107,41 @@ namespace Test
 
         }
     }
-}         
-      
+}
+/*
+    vw_PullRequest
+    | where PartitionId == 1 and 0 == TimezoneOffset and CreatedDateSK >= 20210323 and CreatedDateSK <= 20210406 and RepositorySK in (tolong(1100))
+    | where AuthorSK in ((  ef_TeamUser
+                        | where 1 == UserPartitionId and TeamSK == 1098
+                        | project UserSK
+                      ))
+    | where notnull(AuthorSK)
+    | summarize AvgTimeToOpen=avg(todouble(TimeToOpenInSeconds)), AvgTimeToMerge=avg(todouble(TimeToMergeInSeconds)),
+                SuccessCount=sum(iff(TimeToOpenInSeconds <= 25200, 1, 0)) by CreatedDateSK
+    | project CreatedDateSK, AvgTimeToOpen, AvgTimeToMerge, SuccessCount
+    | sort  by CreatedDateSK asc nulls first
+
+*/
+/*
+SELECT CreatedDateSK,
+AVG( CAST(TimeToOpenInSeconds AS FLOAT)) AS  AvgTimeToOpen, 
+AVG( CAST(TimeToMergeInSeconds AS FLOAT)) AS  AvgTimeToMerge, 
+SUM( CASE WHEN(TimeToOpenInSeconds <= 25200) THEN 1 ELSE 0 END) AS SuccessCount 
+FROM vw_PullRequest 
+WHERE  RepositorySK in ( CAST(1100 as bigint )) 
+   AND CreatedDateSK <= 20210406 
+   AND CreatedDateSK >= 20210323 
+   AND 0 = TimezoneOffset 
+   AND PartitionId = 1 
+   AND AuthorSK IN  
+         ((SELECT UserSK FROM ef_TeamUser WHERE  TeamSK = 1098 AND 1 = UserPartitionId)) 
+   AND AuthorSK IS NOT NULL  
+GROUP BY  CreatedDateSK 
+ORDER BY  CreatedDateSK ASC
+*/
+//"T | where col in~ ('value1', 'value2')", //--> Need to figure out 
+//   "T | summarize Count = count() by name| take 100 by Count desc",//skipped tokens
 
 
 
 
-        
-    
