@@ -76,6 +76,98 @@ namespace Test
         string[] aggregateFunctions = { "max", "min", "sum", "count", "avg", "stdev", "variance" };
         string processedInput = "";
         Dictionary<string, string> nestedTables = new Dictionary<string, string>();
+
+
+        // New Approach
+        List<string> dividedSubStringsPipe = new List<string>();
+        List<string> translatedSubQuery = new List<string>();
+
+        public void toCountNumPipeExpressions(string input)
+        {
+            var query = KustoCode.ParseAndAnalyze(input);
+            var root = query.Syntax;
+            Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n =>
+            {
+                if (n.Kind.ToString() == "PipeExpression")
+                {
+                    numPipeExpression++;
+                }
+               
+            }, n => { });
+        }
+
+        public void dividePipeExpressions(string input)
+        {
+            toCountNumPipeExpressions(input);
+            var query = KustoCode.ParseAndAnalyze(input);
+            var root = query.Syntax;
+            int counter = 1;
+            if(numPipeExpression <= 1)
+            {
+                dividedSubStringsPipe.Add(input); return;
+            }
+            Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n =>
+            {
+                if (n.Kind.ToString() == "PipeExpression" & counter <= numPipeExpression - 1)
+                {
+                    if(counter != numPipeExpression - 1)
+                    {
+                        dividedSubStringsPipe.Add(n.GetChild(2).ToString());
+                        counter++;
+                    }
+                    else
+                    {
+                        dividedSubStringsPipe.Add(n.GetChild(2).ToString());
+                        dividedSubStringsPipe.Add(n.GetChild(0).ToString());
+                        counter++;
+                    }
+                    
+                }
+
+            }, n => { });
+            dividedSubStringsPipe.Reverse();
+        }
+
+        public string solveNew(string input)
+        {
+            string output = "";
+            dividePipeExpressions(input);
+            if (dividedSubStringsPipe.Count == 1) return gettingSqlQueryNew(input);
+            for(int i = 1; i < dividedSubStringsPipe.Count; i++)
+            {
+                dividedSubStringsPipe[i] = "dummyTable | " + dividedSubStringsPipe[i];
+            }
+            for(int i = 0; i < dividedSubStringsPipe.Count; i++)
+            {
+                TestQueries t = new TestQueries();
+                translatedSubQuery.Add(t.gettingSqlQueryNew(dividedSubStringsPipe[i]));
+            }
+            for(int i = 1; i < translatedSubQuery.Count; i++)
+            {
+                translatedSubQuery[i] = translatedSubQuery[i].Replace("dummyTable", "((" + translatedSubQuery[i - 1] + "))");
+            }
+            output = translatedSubQuery[translatedSubQuery.Count - 1];
+            return output;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         public void preProcessTraverseTree(string kqlQuery)
         {
             processedInput = kqlQuery;
@@ -558,12 +650,14 @@ namespace Test
             if (hash_Select.Count != 0)
             { 
                 output += "SELECT";
-                for(int i = 0;  i < orderOperatorsSelect.Count; i++)
+                output = takeTopLimitOperator(output);
+                output = summarizeOperator(output);
+                /*for(int i = 0;  i < orderOperatorsSelect.Count; i++)
                 {
                     string str = orderOperatorsSelect[i];
                     if (str == "takeLiterals") output = takeTopLimitOperator(output);
                     else if (str == "summarize") output = summarizeOperator(output);
-                }
+                }*/
                 //if (!hash_Select.ContainsKey("project") & output.Length > 0) output = output.Remove(output.Length - 1);
                 output = projectOperator(output);
                 
@@ -807,8 +901,12 @@ namespace Test
                 }
                 else
                 {
-                    temp = processFunction(node_funcall.ToString());
-                    return temp;
+                    temp = node.ToString();
+                    Dictionary<string, string> map = processFunction_(node_funcall.ToString());
+                    foreach (string key in map.Keys)
+                    {
+                        temp = temp.Replace(key, map[key]);
+                    }
                 }
             }
             string name_ref = "";
@@ -867,6 +965,7 @@ namespace Test
 
         public string gettingSqlQueryNew(string kqlQuery)
         {
+            
             preProcessTraverseTree(kqlQuery);
             traverseTree(processedInput);
             separateWhereHaving();
@@ -1129,7 +1228,7 @@ namespace Test
                         temp += " CASE WHEN(" + condition + ")" + " THEN " + thenStatement + " ELSE " + elseStatement + " END";
 
                     }
-                    if(funcName == "notnull")
+                    if(funcName == "isnotnull")
                     {
                         Kusto.Language.Syntax.SyntaxElement node = CheckInTree(funcArument, "FunctionCallExpression");
                         if (node == null)

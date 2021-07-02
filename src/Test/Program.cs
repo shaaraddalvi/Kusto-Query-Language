@@ -16,33 +16,34 @@ namespace Test
                 "SuccessCount = sum(iff(TimeToOpenInSeconds <= 25200, 1, 0)) by CreatedDateSK" +
     "| project CreatedDateSK, AvgTimeToOpen, AvgTimeToMerge, SuccessCount" +
     "| sort by CreatedDateSK asc nulls first";
-        static void Main(string[] args)// Gg
+        static void Main(string[] args)// Gg T | project a,b,c,d | where e = 10
         {
-            String[] queries = new String[] {      "T",
-                                                    "T | project a",
-                                                    "T | project a,b,c",
-                                                    "T | take 50",
-                                                    "T | take 10 + 20 ",
-                                                    "T | take 10 * 20 * 30 ",
-                                                    "T | project a,b | take 5",
-                                                    "T | where a > 10",
-                                                    "T | where a > 10 and c < 5 or d > 6 ",
-                                                    "T | project a,b | take 5 | where a > 6 and b > 7",
-                                                    "T | where isnotnull(resultCode)",
-                                                    "T | project a | where isnotnull(resultCode)",
-                                                    "T | where a > 10 | where b > 5",
-                                                    "T | where a > 10 | where isnotnull(resultCode)  ",
-                                                    "T | where 0 == avg(col)",
-                                                    "T | summarize by name, type",
-                                                    "T | summarize max(salary)",
-                                                    "T | summarize min(salary)",
-                                                    "T | summarize max(salary),min(stocks), max(workingHours) ",
-                                                    "T | summarize sum(salary) ",
-                                                    "T | summarize stdev(salary) ",
-                                                    "T | summarize isdouble(salary) ",
-                                                    "T | summarize max(salary),variance(salary) by state ",
-                                                    "T | summarize max(salary), sum(salary), stdev(salary)",
-                                                    "T | summarize avg(duration) by name",
+            String[] queries = new String[] {      "T",  // 0
+                                                    "T | project a", // 1
+                                                    "T | project a,b,c", // 2
+                                                    "T | take 50",    // 3
+                                                    "T | take 10 + 20 ", // 4
+                                                    "T | take 10 * 20 * 30 ", // 5
+                                                    "T | project a,b | take 5", // 6
+                                                    "T | take 5 | project a,b", // 7
+                                                    "T | where a > 10", // 8
+                                                    "T | where a > 10 and c < 5 or d > 6 ",  // 9
+                                                    "T | project a,b | take 5 | where a > 6 and b > 7", // 10
+                                                    "T | where isnotnull(resultCode)",  // 11
+                                                    "T | project a | where isnotnull(resultCode)",  // 12
+                                                    "T | where a > 10 | where b > 5",   // 13
+                                                    "T | where a > 10 | where isnotnull(resultCode)  ", // 14
+                                                    "T | where 0 == avg(col)",  // 15
+                                                    "T | summarize by name, type", // 16
+                                                    "T | summarize max(salary)", // 17
+                                                    "T | summarize min(salary)", // 18
+                                                    "T | summarize max(salary),min(stocks), max(workingHours) ", // 19
+                                                    "T | summarize sum(salary) ",  // 20
+                                                    "T | summarize stdev(salary) ",  // 21
+                                                    //"T | summarize isdouble(salary) ",  // 22
+                                                    "T | summarize max(salary),variance(salary) by state ",  // 22
+                                                    "T | summarize max(salary), sum(salary), stdev(salary)", // 23
+                                                    "T | summarize avg(duration) by name",  // 24
                                                     "T | project name, timestamp| order by timestamp desc nulls last",
                                                     "T | summarize sum(salary) by state | take 50 | where salary > 100 and state> 6",
                                                     "T | summarize count() | limit 5",
@@ -62,7 +63,11 @@ namespace Test
                                                     "T | join kind = rightouter  (exceptions) on $left.operation_Id == $right.operation_Id",
                                                     "T | join kind = fullouter  (exceptions) on $left.operation_Id == $right.operation_Id",
                                                     "T | join kind = leftouter  (exceptions) on $left.operation_Id == $right.operation_Id",
-                                                    Program.sample_query
+                                                    Program.sample_query,
+                                                    "T | limit 10 | summarize count()",
+
+
+
 
 
 
@@ -70,7 +75,10 @@ namespace Test
 
 
                                                          };
-        
+            int i = 6;
+            TestQueries test = new TestQueries();
+            string output = (test.solveNew(queries[i]));
+            Console.WriteLine(output);
             // Next to work on sGG
             // Generalization done for these queriesG
             /*string input = queries[queries.Length- 4];
@@ -79,7 +87,7 @@ namespace Test
             TestQueries test = new TestQueries();
             string output = (test.gettingSqlQueryNew(input));
             Console.WriteLine(output);*/
-            for (int i = 0; i <  queries.Length ; i++)
+            /*for (int i = 0; i <  queries.Length ; i++)
             {
                 string input = queries[i];
                 Console.WriteLine(input);
@@ -88,7 +96,7 @@ namespace Test
                 string output = (test.gettingSqlQueryNew(input));
                 Console.WriteLine(output);
                 Console.WriteLine();
-            }
+            }*/
 
 
             /*
@@ -139,6 +147,14 @@ WHERE  RepositorySK in ( CAST(1100 as bigint ))
 GROUP BY  CreatedDateSK 
 ORDER BY  CreatedDateSK ASC
 */
+
+
+
+
+
+
+
+
 //"T | where col in~ ('value1', 'value2')", //--> Need to figure out 
 //   "T | summarize Count = count() by name| take 100 by Count desc",//skipped tokens
 
