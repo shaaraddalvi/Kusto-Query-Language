@@ -66,9 +66,10 @@ namespace Test
                                                     // SELECT * FROM T RIGHT OUTER JOIN exceptions ON T.operation_Id;
                                                     "T | join kind = fullouter  (exceptions) on $left.operation_Id == $right.operation_Id",  // 42
                                                     "T | join kind = leftouter  (exceptions) on $left.operation_Id == $right.operation_Id",  // 43
-                                                    "T | join kind = inner (exceptions | project a) on operation_Id", // 44
+                                                    "T | join kind = inner (exceptions | project a) on $left.operation_Id == $right.operation_Id", // 44
                                                     // SELECT * FROM T RIGHT OUTER JOIN ((SELECT a FROM exceptions)) ON T.operation_Id;
-                                                    "T | join kind = inner(exceptions | project a) on a | join kind = inner(Table) on a",
+                                                    "T | join kind = inner(exceptions | project a) on a | join kind = inner(Table | project a) on a",
+                                                    "T | join kind = inner(Table1 | project a) on $left.a == $right.a | join kind = inner(Table2 | project a) on $left.a == $right.a",
                                                     Program.sample_query,  // 45
                                                     "T | limit 10 | summarize count()"  // 46  
                                                     
@@ -91,25 +92,25 @@ namespace Test
 
             // Next to work on sGG
             // Generalization done for these queriesG
-            string input = queries[queries.Length- 9];
+            /*string input = queries[queries.Length- 3];
             Console.WriteLine(input);
             TestQueries.tree(input);
             TestQueries test = new TestQueries();
-            string output = (test.solveNew(input));
-            Console.WriteLine(output);
+            string output = (test.solveNewNew(input));
+            Console.WriteLine(output);*/
             
             //SELECT * FROM ((SELECT * FROM T INNER JOIN ((SELECT a FROM exceptions)) ON T.a)) INNER JOIN
             //((Table)) ON ((SELECT * FROM T INNER JOIN ((SELECT a FROM exceptions)) ON T.a)).a
-            /*for (int i = 0; i <  queries.Length ; i++)
+            for (int i = 0; i <  queries.Length ; i++)
             {
                 string input = queries[i];
                 Console.WriteLine(input);
                 //TestQueries.tree(input);
                 TestQueries test = new TestQueries();
-                string output = (test.solveNew(input));
+                string output = (test.solveNewNew(input));
                 Console.WriteLine(output);
                 Console.WriteLine();
-            }*/
+            }
 
 
             /*

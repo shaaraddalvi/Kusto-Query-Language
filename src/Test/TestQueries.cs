@@ -186,6 +186,59 @@ namespace Test
             }, n => { });
         }
 
+        public string solveNewNew(string input)
+        {
+            string output = "";
+            string temp = input;
+            preProcessingNew(input);
+            if(allNestedTables.Count != 0)
+            {
+                output += "; WITH ";
+            }
+            foreach (string key in allNestedTables.Keys)
+            {
+                string val = allNestedTables.GetValueOrDefault(key).ToString().TrimStart().TrimEnd();
+                TestQueries t = new TestQueries();
+                output += key + " AS" + "("+ t.gettingSqlQueryNew(val) + ")" + "," ;
+                temp = temp.Replace(val, key);
+            }
+            //if (allNestedTables.Count != 0) output = output.Remove(output.Length-1);
+            //output += " \n";
+            dividePipeExpressions(temp);
+            if (dividedSubStringsPipe.Count == 1)
+            {
+                if (allNestedTables.Count != 0) output = output.Remove(output.Length - 1);
+                output += (" " + gettingSqlQueryNew(temp));
+                
+            }
+            else
+            {
+                for (int i = 1; i < dividedSubStringsPipe.Count; i++)
+                {
+                    dividedSubStringsPipe[i] = "dummyTable | " + dividedSubStringsPipe[i];
+                }
+                for (int i = 0; i < dividedSubStringsPipe.Count; i++)
+                {
+                    TestQueries t = new TestQueries();
+                    translatedSubQuery.Add(t.gettingSqlQueryNew(dividedSubStringsPipe[i]));
+                }
+                for (int i = 1; i < translatedSubQuery.Count; i++)
+                {
+                    if(CheckInTree(dividedSubStringsPipe[i-1], "JoinOperator") != null)
+                    {
+                        iNestedMap++; string key = "TablePSN" + iNestedMap.ToString();
+                        output += key + " AS" + "(" + translatedSubQuery[i-1] + ")" + ",";
+                        translatedSubQuery[i] = translatedSubQuery[i].Replace("dummyTable", key);
+                    }else 
+                    translatedSubQuery[i] = translatedSubQuery[i].Replace("dummyTable", "((" + translatedSubQuery[i - 1] + "))");
+                }
+                if (allNestedTables.Count != 0) output = output.Remove(output.Length - 1);
+                output += (" " +  translatedSubQuery[translatedSubQuery.Count - 1]);
+            }
+            
+            return output;
+        }
+
         public string solveNew(string input)
         {
             string output = "";
@@ -923,13 +976,13 @@ namespace Test
                                 output += ".";
                                 output += info[0][1];
                             }
-                            /*output += "=";
+                            output += "=";
                             if (info[1][0] == "$right" | info[1][0] == " $right")
                             {
                                 output += otherTableNames[0];
                                 output += ".";
                                 output += info[1][1];
-                            }*/
+                            }
                         }
                         
                     }
