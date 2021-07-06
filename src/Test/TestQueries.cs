@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Kusto.Language;
 using System.Text;
+using System.Linq;
 
 namespace Test
 {
@@ -76,7 +77,10 @@ namespace Test
         string[] aggregateFunctions = { "max", "min", "sum", "count", "avg", "stdev", "variance" };
         string processedInput = "";
         Dictionary<string, string> nestedTables = new Dictionary<string, string>();
-
+        List<string> operatorsSupported = new List<string>();
+        static string[] operators = {"ProjectOperator", "TakeOperator", "FilterOperator", "TopOperator", SummarizeOperator.ToString(),
+            SummarizeByClause.ToString() ,SortOperator.ToString() , "JoinOperator" };
+        List<string> operatorsList = operators.ToList<string>();
 
         // New Approach
         List<string> dividedSubStringsPipe = new List<string>();
@@ -128,25 +132,112 @@ namespace Test
             dividedSubStringsPipe.Reverse();
         }
 
+
+
+        Dictionary<string, Kusto.Language.Syntax.SyntaxElement> allNestedTables = new Dictionary<string, Kusto.Language.Syntax.SyntaxElement>();
+        public void preProcessingNew(string input)
+        {
+            var query = KustoCode.ParseAndAnalyze(input);
+            var root = query.Syntax;
+            List<Kusto.Language.Syntax.SyntaxElement> nodesIgnored = new List<Kusto.Language.Syntax.SyntaxElement>();
+            Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n =>
+            {
+                if(nodesIgnored.Contains(n))
+                {
+                    int child = n.ChildCount;
+                    for (int i = 0; i < child; i++)
+                    {
+                        nodesIgnored.Add(n.GetChild(i));
+                    }
+                }
+                if((!nodesIgnored.Contains(n))  & operatorsList.Contains(n.Kind.ToString()))
+                {
+                    preprocessingNewHelper(n);
+                    int child = n.ChildCount;
+                    for(int i = 0;i < child; i++)
+                    {
+                        nodesIgnored.Add(n.GetChild(i));
+                    }
+                }
+            }, n => { });
+        }
+        int iNestedMap = 0;
+        public void preprocessingNewHelper(Kusto.Language.Syntax.SyntaxElement node)
+        {
+            List<Kusto.Language.Syntax.SyntaxElement> nodesIgnored = new List<Kusto.Language.Syntax.SyntaxElement>();
+            Kusto.Language.Syntax.SyntaxElement.WalkNodes((Kusto.Language.Syntax.SyntaxNode)node, n =>
+            {
+                if(n.Kind.ToString() == PipeSymbol)
+                {
+                    if(nodesIgnored.Contains(n))
+                    {
+                        nodesIgnored.Add(n.GetChild(0));
+                        nodesIgnored.Add(n.GetChild(2));
+                    }
+                    if(!nodesIgnored.Contains(n))
+                    {
+                        nodesIgnored.Add(n.GetChild(0));
+                        nodesIgnored.Add(n.GetChild(2));
+                        iNestedMap++; 
+                        string temp = "TablePSN" + iNestedMap.ToString() ;
+                        allNestedTables.Add(temp, n);
+                    }
+                }
+            }, n => { });
+        }
+
         public string solveNew(string input)
         {
             string output = "";
-            dividePipeExpressions(input);
-            if (dividedSubStringsPipe.Count == 1) return gettingSqlQueryNew(input);
-            for(int i = 1; i < dividedSubStringsPipe.Count; i++)
+            string temp = input;
+            preProcessingNew(input);
+            foreach(string key in allNestedTables.Keys)
             {
-                dividedSubStringsPipe[i] = "dummyTable | " + dividedSubStringsPipe[i];
+                string val = allNestedTables.GetValueOrDefault(key).ToString().TrimStart().TrimEnd();
+                temp = input.Replace(val, key);
             }
-            for(int i = 0; i < dividedSubStringsPipe.Count; i++)
+            dividePipeExpressions(temp);
+            /*for(int i = 0; i < dividedSubStringsPipe.Count; i++)
             {
-                TestQueries t = new TestQueries();
-                translatedSubQuery.Add(t.gettingSqlQueryNew(dividedSubStringsPipe[i]));
-            }
-            for(int i = 1; i < translatedSubQuery.Count; i++)
+                string t = dividedSubStringsPipe[i].TrimStart().TrimEnd();
+                foreach (string key in allNestedTables.Keys)
+                {
+                    string val = allNestedTables.GetValueOrDefault(key).ToString().TrimStart().TrimEnd();
+                    if(t.Contains(key)) t = t.Replace(key, val); 
+                }
+            }*/
+            if (dividedSubStringsPipe.Count == 1)
             {
-                translatedSubQuery[i] = translatedSubQuery[i].Replace("dummyTable", "((" + translatedSubQuery[i - 1] + "))");
+                output =  gettingSqlQueryNew(temp);
             }
-            output = translatedSubQuery[translatedSubQuery.Count - 1];
+            else
+            {
+                for(int i = 1; i < dividedSubStringsPipe.Count; i++)
+                {
+                    dividedSubStringsPipe[i] = "dummyTable | " + dividedSubStringsPipe[i];
+                }
+                for (int i = 0; i < dividedSubStringsPipe.Count; i++)
+                {
+                    TestQueries t = new TestQueries();
+                    translatedSubQuery.Add(t.gettingSqlQueryNew(dividedSubStringsPipe[i]));
+                }
+                for (int i = 1; i < translatedSubQuery.Count; i++)
+                {
+                    translatedSubQuery[i] = translatedSubQuery[i].Replace("dummyTable", "((" + translatedSubQuery[i - 1] + "))");
+                }
+                output = translatedSubQuery[translatedSubQuery.Count - 1];
+            }
+            
+            foreach (string key in allNestedTables.Keys)
+            {
+                string val = allNestedTables.GetValueOrDefault(key).ToString().TrimStart().TrimEnd();
+                if(output.Contains(key))
+                {
+                    TestQueries t = new TestQueries();
+                    string s = t.solveNew(val);
+                    output = output.Replace(key, s);
+                }
+            }
             return output;
         }
 
@@ -385,6 +476,20 @@ namespace Test
             }, n => { });
             return tokenNames;
         }
+
+        public List<string> TokenNames(Kusto.Language.Syntax.SyntaxElement root)
+        {
+            List<string> tokenNames = new List<string>();
+            Kusto.Language.Syntax.SyntaxElement.WalkNodes((Kusto.Language.Syntax.SyntaxNode)root, n => {
+                if (n.Kind == Kusto.Language.Syntax.SyntaxKind.TokenName)
+                {
+                    tokenNames.Add(n.ToString());
+                }
+            }, n => { });
+            return tokenNames;
+        }
+
+
         public List<string> LiteralValues(string input_query)
         {
             List<string> literalValues = new List<string>();
@@ -797,24 +902,36 @@ namespace Test
                     //TestQueries temp = new TestQueries();
                     //output += temp.gettingSqlQueryNew(otherTable.ToString());
                     List<string> otherTableNames = TokenNames(otherTable.ToString());
+                    output += "((";
                     output = addListElements(otherTableNames, output);
+                    output += "))";
                     if(join_hash.ContainsKey ("onInfo"))
                     {
                         List<List<string>> info = onInfoJoin(join_hash.GetValueOrDefault("onInfo"));
                         output += " ON ";
-                        if(info[0][0] == "$left" | info[0][0] == " $left")
+                        if(info.Count == 0)
                         {
-                            output += allTokenNames[0];
-                            output += ".";
-                            output += info[0][1];
+                            Kusto.Language.Syntax.SyntaxElement node = join_hash.GetValueOrDefault("onInfo");
+                            List<string> t = TokenNames(node);
+                            output += fromData[0] + "." + t[0].TrimStart();
                         }
-                        output += "=";
-                        if (info[1][0] == "$right" | info[1][0] == " $right")
+                        else
                         {
-                            output += otherTableNames[0];
-                            output += ".";
-                            output += info[1][1];
+                            if (info[0][0] == "$left" | info[0][0] == " $left")
+                            {
+                                output += allTokenNames[0];
+                                output += ".";
+                                output += info[0][1];
+                            }
+                            /*output += "=";
+                            if (info[1][0] == "$right" | info[1][0] == " $right")
+                            {
+                                output += otherTableNames[0];
+                                output += ".";
+                                output += info[1][1];
+                            }*/
                         }
+                        
                     }
                     if(nestedTables.Count != 0)
                     {
@@ -857,7 +974,7 @@ namespace Test
             string output = "";
             if (hash_Select.ContainsKey("summarize"))
             {
-                List<string> groupByNameDeclarations = new List<string>();
+                List<string> groupByNameReferences = new List<string>();
                 if (individualExpressions.Count != 0 & summarizeByColumns.Count != 0)
                 {
                     output += " GROUP BY ";
@@ -865,12 +982,12 @@ namespace Test
                     List<Kusto.Language.Syntax.SyntaxElement> temp = hash_GroupBy.GetValueOrDefault("SeparatedExpressions");
                     for(int i = 0; i < temp.Count; i++)
                     {
-                        Kusto.Language.Syntax.SyntaxElement node = CheckInTree(temp[i], "NameDeclaration");
-                        if (node != null) groupByNameDeclarations.Add(node.ToString());
-                        else groupByNameDeclarations.Add(temp[i].ToString());
+                        Kusto.Language.Syntax.SyntaxElement node = CheckInTree(temp[i], "NameReference");
+                        if (node != null) groupByNameReferences.Add(node.ToString());
+                        else groupByNameReferences.Add(temp[i].ToString());
                     }
                     //List<string> convertedTemp = NameRefFunCall(temp);
-                    output = addListElements(groupByNameDeclarations, output);
+                    output = addListElements(groupByNameReferences, output);
 
                 }
             }
@@ -896,17 +1013,20 @@ namespace Test
                 Kusto.Language.Syntax.SyntaxElement node_funcall = CheckInTree(node, "FunctionCallExpression");
                 if (node_funcall == null)
                 {
-                    temp = node.ToString();
+                    temp = node.ToString().TrimStart().TrimEnd();
+                    if (temp[temp.Length - 1] == ',') temp = temp.Remove(temp.Length-1);
                     return temp;
                 }
                 else
                 {
-                    temp = node.ToString();
-                    Dictionary<string, string> map = processFunction_(node_funcall.ToString());
+                    temp = node.ToString().TrimStart().TrimEnd();
+                    if (temp[temp.Length - 1] == ',') temp = temp.Remove(temp.Length - 1);
+                    Dictionary<string, string> map = processFunction_(temp);
                     foreach (string key in map.Keys)
                     {
                         temp = temp.Replace(key, map[key]);
                     }
+                    return temp;
                 }
             }
             string name_ref = "";
@@ -1228,7 +1348,7 @@ namespace Test
                         temp += " CASE WHEN(" + condition + ")" + " THEN " + thenStatement + " ELSE " + elseStatement + " END";
 
                     }
-                    if(funcName == "isnotnull")
+                    if(funcName == "isnotnull" | funcName == "notnull")
                     {
                         Kusto.Language.Syntax.SyntaxElement node = CheckInTree(funcArument, "FunctionCallExpression");
                         if (node == null)
@@ -1273,7 +1393,8 @@ namespace Test
                         {
                             funcArument = funcArument.Replace(key, temp1[key]);
                         }
-                        temp += funcArument;
+                        if (funcArument.TrimStart().TrimEnd() == "") temp += "*";
+                        else temp += funcArument;
                        
                          temp += ")";
                     }
@@ -1336,7 +1457,7 @@ namespace Test
 
         public string removeBrackets(string input)
         {
-            if (input.Length < 2) return "";
+            if (input.Length < 2) return input;
             if(input[0] == '(')
             {
                 StringBuilder sb = new StringBuilder(input);

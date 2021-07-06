@@ -41,30 +41,37 @@ namespace Test
                                                     "T | summarize sum(salary) ",  // 20
                                                     "T | summarize stdev(salary) ",  // 21
                                                     //"T | summarize isdouble(salary) ",  // 22
-                                                    "T | summarize max(salary),variance(salary) by state ",  // 22
+                                                    "T | summarize max(salary),variance(salary) by state ",  // 22 --> SELECT state,MAX(salary),VAR(salary) FROM T GROUP BY state
                                                     "T | summarize max(salary), sum(salary), stdev(salary)", // 23
                                                     "T | summarize avg(duration) by name",  // 24
-                                                    "T | project name, timestamp| order by timestamp desc nulls last",
-                                                    "T | summarize sum(salary) by state | take 50 | where salary > 100 and state> 6",
-                                                    "T | summarize count() | limit 5",
-                                                    "T | where col in ('value1', 'value2')",
-                                                    "T | where col !in ('value1', 'value2')",
-                                                     "T | where a > tolong(1100)",
-                                                    "T | where a in (tolong(1100)) ",
-                                                     "T | where avg(todouble(a)) > 2",
-                                                     "T | project a | where avg(column) > 4",
-                                                    "T | project a | where avg(column) > 4 + column/2 +   max(column)",
-                                                    "T | where sum(iff(TimeToOpenInSeconds <= 25200, 1, 0)) == 3",
-                                                    "T | summarize AvgD = avg(duration), SumD = sum(days) by Name=operationName",
-                                                    "T | summarize AvgD = avg(duration), Count = count() by Name=operationName, RollNumber",
-                                                    "T | summarize AvgTimeToOpen=avg(todouble(TimeToOpenInSeconds)), AvgTimeToMerge=avg(todouble(TimeToMergeInSeconds)) | project CreatedDateSK, AvgTimeToOpen",
-                                                     "T | project a | where a== 1 and b in ((Table |  where a > 5 )) | where notnull(authorSK) ",
-                                                    "T | join kind =  inner (exceptions) on $left.operation_Id == $right.operation_Id",
-                                                    "T | join kind = rightouter  (exceptions) on $left.operation_Id == $right.operation_Id",
-                                                    "T | join kind = fullouter  (exceptions) on $left.operation_Id == $right.operation_Id",
-                                                    "T | join kind = leftouter  (exceptions) on $left.operation_Id == $right.operation_Id",
-                                                    Program.sample_query,
-                                                    "T | limit 10 | summarize count()",
+                                                    "T | project name, timestamp| order by timestamp desc nulls last", // 25
+                                                    "T | summarize sum(salary) by state | take 50 | where salary > 100 and state> 6",  // 26
+                                                   
+                                                    "T | summarize count() | limit 5",  // 27
+                                                    "T | where col in ('value1', 'value2')", // 28
+                                                    "T | where col !in ('value1', 'value2')",  // 29
+                                                     "T | where a > tolong(1100)",  // 30 
+                                                    "T | where a in (tolong(1100)) ",  // 31
+                                                     "T | where avg(todouble(a)) > 2",   // 32
+                                                     "T | project a | where avg(column) > 4",  // 33
+                                                    "T | project a | where avg(column) > 4 + column/2 +   max(column)",  // 34
+                                                    "T | where sum(iff(TimeToOpenInSeconds <= 25200, 1, 0)) == 3",  // 35
+                                                    "T | summarize AvgD = avg(duration), SumD = sum(days) by Name=operationName",  // 36
+                                                    "T | summarize AvgD = avg(duration), Count = count() by Name=operationName, RollNumber", // 37
+                                                    "T | summarize AvgTimeToOpen=avg(todouble(TimeToOpenInSeconds)), AvgTimeToMerge=avg(todouble(TimeToMergeInSeconds)) | project CreatedDateSK, AvgTimeToOpen",  // 38
+                                                     "T | project a | where a == 1 and b in ((Table |  where a > 5 )) ", // 39
+                                                    "T | join kind =  inner ((exceptions)) on $left.operation_Id == $right.operation_Id",  // 40
+                                                    "T | join kind = rightouter  (exceptions) on $left.operation_Id == $right.operation_Id",  // 41
+                                                    // SELECT * FROM T RIGHT OUTER JOIN exceptions ON T.operation_Id = exceptions.operation_Id;
+                                                    // SELECT * FROM T RIGHT OUTER JOIN exceptions ON T.operation_Id;
+                                                    "T | join kind = fullouter  (exceptions) on $left.operation_Id == $right.operation_Id",  // 42
+                                                    "T | join kind = leftouter  (exceptions) on $left.operation_Id == $right.operation_Id",  // 43
+                                                    "T | join kind = inner (exceptions | project a) on operation_Id", // 44
+                                                    // SELECT * FROM T RIGHT OUTER JOIN ((SELECT a FROM exceptions)) ON T.operation_Id;
+                                                    "T | join kind = inner(exceptions | project a) on a | join kind = inner(Table) on a",
+                                                    Program.sample_query,  // 45
+                                                    "T | limit 10 | summarize count()"  // 46  
+                                                    
 
 
 
@@ -75,41 +82,46 @@ namespace Test
 
 
                                                          };
-            int i = 6;
+            /*int i = 44;
             TestQueries test = new TestQueries();
-            string output = (test.solveNew(queries[i]));
-            Console.WriteLine(output);
+            string output = test.solveNew(queries[queries.Length-2]);*/
+
+            //Console.WriteLine(output);
+         //SELECT * FROM ((SELECT * FROM ((SELECT a FROM ((SELECT * FROM T)))) WHERE  b IN  ((SELECT * FROM Table WHERE a > 5)) AND a= 1)) WHERE
+
             // Next to work on sGG
             // Generalization done for these queriesG
-            /*string input = queries[queries.Length- 4];
+            string input = queries[queries.Length- 9];
             Console.WriteLine(input);
             TestQueries.tree(input);
             TestQueries test = new TestQueries();
-            string output = (test.gettingSqlQueryNew(input));
-            Console.WriteLine(output);*/
+            string output = (test.solveNew(input));
+            Console.WriteLine(output);
+            
+            //SELECT * FROM ((SELECT * FROM T INNER JOIN ((SELECT a FROM exceptions)) ON T.a)) INNER JOIN
+            //((Table)) ON ((SELECT * FROM T INNER JOIN ((SELECT a FROM exceptions)) ON T.a)).a
             /*for (int i = 0; i <  queries.Length ; i++)
             {
                 string input = queries[i];
                 Console.WriteLine(input);
                 //TestQueries.tree(input);
                 TestQueries test = new TestQueries();
-                string output = (test.gettingSqlQueryNew(input));
+                string output = (test.solveNew(input));
                 Console.WriteLine(output);
                 Console.WriteLine();
             }*/
 
 
             /*
-             * queries - b > var(column) --> either using visitor pattern or something direct traversal method
+             * 
              * dependencies | summarize AvgD = avg(duration) by Name=operationName  --> name convention
               --> hash_select - make all types as nodes from string. 
-              --> do this convention for summarize By -> same concept
-             * dependencies| project name, timestamp | order by timestamp asc nulls last  --> what is null first and null last
-             * Functions to add --> todouble()  , count()--> COUNT(*)
-             * Skipped tokens in last query
+              
+             * 
+          
+           
              * Nested queries -> generally in join queries 
-                Problem -> operators in second tables are geeting added in first table also. 
-                How to solve --> check if its ancestor 
+                
             */
 
 
@@ -147,6 +159,20 @@ WHERE  RepositorySK in ( CAST(1100 as bigint ))
 GROUP BY  CreatedDateSK 
 ORDER BY  CreatedDateSK ASC
 */
+/*
+SELECT * FROM 
+((SELECT CreatedDateSK,  AvgTimeToOpen,  AvgTimeToMerge,  SuccessCount FROM 
+((SELECT CreatedDateSK,AVG( CAST(TimeToOpenInSeconds AS FLOAT )) AS  AvgTimeToOpen, 
+AVG( CAST(TimeToMergeInSeconds AS FLOAT )) AS  AvgTimeToMerge, SUM( CASE WHEN(TimeToOpenInSeconds <= 25200) 
+THEN 1 ELSE 0 END) AS SuccessCount FROM 
+((SELECT * FROM 
+((SELECT * FROM ((SELECT * FROM vw_PullRequest WHERE  RepositorySK in ( CAST(1100 as bigint )) AND 
+CreatedDateSK <= 20210406 AND CreatedDateSK >= 20210323 AND 0 = TimezoneOffset AND PartitionId = 1)) 
+WHERE AuthorSK IN  ((SELECT UserSK FROM ((SELECT * FROM ef_TeamUser WHERE  TeamSK = 1098 AND 1 = UserPartitionId))))))
+WHERE AuthorSK IS NOT NULL )) 
+GROUP BY  CreatedDateSK)))) 
+ORDER BY  CreatedDateSK ASC
+ */
 
 
 
