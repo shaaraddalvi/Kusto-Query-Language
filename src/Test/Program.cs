@@ -22,8 +22,7 @@ namespace Test
                                                     "T | project a", // 1
                                                     "T | project a,b,c", // 2
                                                     "T | take 50",    // 3
-                                                    "T | take 10 + 20 ", // 4
-                                                    "T | take 10 * 20 * 30 ", // 5
+                                                    
                                                     "T | project a,b | take 5", // 6
                                                     "T | take 5 | project a,b", // 7
                                                     "T | where a > 10", // 8
@@ -68,10 +67,11 @@ namespace Test
                                                     "T | join kind = leftouter  (exceptions) on $left.operation_Id == $right.operation_Id",  // 43
                                                     "T | join kind = inner (exceptions | project a) on $left.operation_Id == $right.operation_Id", // 44
                                                     // SELECT * FROM T RIGHT OUTER JOIN ((SELECT a FROM exceptions)) ON T.operation_Id;
-                                                    "T | join kind = inner(exceptions | project a) on a | join kind = inner(Table | project a) on a",
+                                                    "T | join kind = inner(exceptions | project a ) on a | join kind = inner(Table | project a) on a",
                                                     "T | join kind = inner(Table1 | project a) on $left.a == $right.a | join kind = inner(Table2 | project a) on $left.a == $right.a",
                                                     Program.sample_query,  // 45
-                                                    "T | limit 10 | summarize count()"  // 46  
+                                                    "T | limit 10 | summarize count()",  // 46  
+                                                    "T | project a | where isnotnull(a)"
                                                     
 
 
@@ -88,19 +88,18 @@ namespace Test
             string output = test.solveNew(queries[queries.Length-2]);*/
 
             //Console.WriteLine(output);
-         //SELECT * FROM ((SELECT * FROM ((SELECT a FROM ((SELECT * FROM T)))) WHERE  b IN  ((SELECT * FROM Table WHERE a > 5)) AND a= 1)) WHERE
+            //SELECT * FROM ((SELECT * FROM ((SELECT a FROM ((SELECT * FROM T)))) WHERE  b IN  ((SELECT * FROM Table WHERE a > 5)) AND a= 1)) WHERE
 
             // Next to work on sGG
-            // Generalization done for these queriesG
-            /*string input = queries[queries.Length- 3];
+            // Generalization done for these queriesR_
+           /* string input = queries[49];
             Console.WriteLine(input);
-            TestQueries.tree(input);
+            Tree.tree(input);
             TestQueries test = new TestQueries();
-            string output = (test.solveNewNew(input));
+            string output = (test.solveNewNew(input)); 
             Console.WriteLine(output);*/
             
-            //SELECT * FROM ((SELECT * FROM T INNER JOIN ((SELECT a FROM exceptions)) ON T.a)) INNER JOIN
-            //((Table)) ON ((SELECT * FROM T INNER JOIN ((SELECT a FROM exceptions)) ON T.a)).a
+            
             for (int i = 0; i <  queries.Length ; i++)
             {
                 string input = queries[i];
@@ -185,6 +184,10 @@ ORDER BY  CreatedDateSK ASC
 //"T | where col in~ ('value1', 'value2')", //--> Need to figure out 
 //   "T | summarize Count = count() by name| take 100 by Count desc",//skipped tokens
 
+/*
+ * Limitations of project - take 1 + 2
+ * 
+*/
 
 
 
