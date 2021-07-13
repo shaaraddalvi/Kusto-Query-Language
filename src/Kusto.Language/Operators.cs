@@ -42,10 +42,6 @@ namespace Kusto.Language
                 new Signature(ScalarTypes.Bool,
                     new Parameter("left", ParameterTypeKind.StringOrDynamic, ArgumentKind.Star),
                     new Parameter("right", ScalarTypes.String)));
-
-        public static readonly OperatorSymbol Memberof = 
-            new OperatorSymbol(OperatorKind.Memberof, new Signature(ScalarTypes.Bool, new Parameter("left", ScalarTypes.String), new Parameter("right", ScalarTypes.String)));
-
         public static readonly OperatorSymbol UnaryMinus =
             new OperatorSymbol(OperatorKind.UnaryMinus,
                     new Signature(ReturnTypeKind.Parameter0, new Parameter("operand", ParameterTypeKind.Summable)),
@@ -270,6 +266,10 @@ namespace Kusto.Language
 
         public static readonly OperatorSymbol Search =
             StringBinary(OperatorKind.Search);
+
+        public static readonly OperatorSymbol Memberof =
+            new OperatorSymbol(OperatorKind.Memberof,
+                new Signature(ScalarTypes.Bool, new Parameter("left", ScalarTypes.String), new Parameter("right", ParameterTypeKind.Scalar, maxOccurring: short.MaxValue)));
 
         public static readonly OperatorSymbol In =
             new OperatorSymbol(OperatorKind.In,

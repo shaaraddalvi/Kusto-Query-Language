@@ -2078,7 +2078,20 @@ namespace Kusto.Language.Parsing
                             expr = new BetweenExpression(SyntaxKind.NotBetweenExpression, expr, ParseToken(), ParseRequiredExpressionCouple());
                             continue;
                         case SyntaxKind.MemberofOperator:
-                            expr = new BinaryExpression(SyntaxKind.MemberofExpression, expr, ParseToken(), ParseMemberofParameters());
+                            Func<QueryParser, Expression> fnParseStringLiteral = qp => {
+                                if(qp.PeekToken().Kind == SyntaxKind.StringLiteralToken)
+                                    return new LiteralExpression(SyntaxKind.StringLiteralExpression, qp.ParseToken());
+                                else   
+                                    return null;
+                            };
+                            expr = new MemberofExpression(SyntaxKind.MemberofExpression,
+                                expr,
+                                ParseToken(),
+                                ParseRequiredToken(SyntaxKind.OpenParenToken),
+                                ParseRequiredToken(SyntaxKind.OpenBracketToken),
+                                ParseCommaList(fnParseStringLiteral, CreateMissingExpression, FnScanCommonListEnd, oneOrMore: true),
+                                ParseRequiredToken(SyntaxKind.CloseBracketToken),
+                                ParseRequiredToken(SyntaxKind.CloseParenToken));
                             continue;
                         default:
                             return expr;
@@ -2088,46 +2101,6 @@ namespace Kusto.Language.Parsing
 
             return expr;
         }
-
-        private Expression ParseMemberofParameters()
-        {
-            var openParen = ParseToken(SyntaxKind.OpenParenToken) ?? CreateMissingToken(SyntaxKind.OpenParenToken);
-            var openBracket = ParseToken(SyntaxKind.OpenBracketToken) ?? CreateMissingToken(SyntaxKind.OpenBracketToken);
-
-            Func<QueryParser, Expression> fnParseStringLiteral = qp => {
-                if(qp.PeekToken().Kind == SyntaxKind.StringLiteralToken)
-                    return new LiteralExpression(SyntaxKind.StringLiteralExpression, qp.ParseToken());
-                else   
-                    return null;
-            };
-            var separatedParameters = ParseCommaList(fnParseStringLiteral, CreateMissingStringLiteral, FnScanCommonListEnd, true);
-
-            var closeBracket = ParseToken(SyntaxKind.CloseBracketToken) ?? CreateMissingToken(SyntaxKind.CloseBracketToken);
-            var closeParen = ParseToken(SyntaxKind.CloseParenToken) ?? CreateMissingToken(SyntaxKind.CloseParenToken);
-
-            List<Diagnostic> diag = new List<Diagnostic>();
-
-            if (openParen.HasSyntaxDiagnostics)
-                diag.Add(openParen.SyntaxDiagnostics[0]);
-            if (openBracket.HasSyntaxDiagnostics)
-                diag.Add(openBracket.SyntaxDiagnostics[0]);
-            if (closeBracket.HasSyntaxDiagnostics)
-                diag.Add(closeBracket.SyntaxDiagnostics[0]);
-            if (closeParen.HasSyntaxDiagnostics)
-                diag.Add(closeParen.SyntaxDiagnostics[0]);
-
-            Func<SeparatedElement, SyntaxToken> TokenFromSeparatedElements = x => {
-                var y = x.Element.GetFirstToken();
-
-                if (x.Separator != null && x.Separator.HasSyntaxDiagnostics)
-                    diag.Add(x.Separator.SyntaxDiagnostics[0]);
-
-                return SyntaxToken.Literal(y.Trivia, y.Text, y.Kind, y.SyntaxDiagnostics);
-            };
-
-            return new CompoundStringLiteralExpression(new SyntaxList<SyntaxToken>(separatedParameters.Select(TokenFromSeparatedElements).ToList(), diag));
-        }
-
         private ExpressionList ParseRequiredInOperatorExpressionList()
         {
             return new ExpressionList(

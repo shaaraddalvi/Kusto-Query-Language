@@ -1986,6 +1986,128 @@ namespace Kusto.Language.Syntax
     }
     #endregion /* class BinaryExpression */
     
+    #region class MemberofExpression
+    /// <summary>
+    /// A node in the kusto syntax that represents a memberof expression.
+    /// </summary>
+    public sealed partial class MemberofExpression : Expression
+    {
+        private readonly SyntaxKind kind;
+        public override SyntaxKind Kind => this.kind;
+        
+        /// <summary>
+        /// The left side expression.
+        /// </summary>
+        public Expression Left { get; }
+        
+        /// <summary>
+        /// The memberof keyword.
+        /// </summary>
+        public SyntaxToken Operator { get; }
+        
+        /// <summary>
+        /// The open parenthesis token.
+        /// </summary>
+        public SyntaxToken OpenParen { get; }
+        
+        /// <summary>
+        /// The open bracket token.
+        /// </summary>
+        public SyntaxToken OpenBracket { get; }
+        
+        /// <summary>
+        /// The list of teams.
+        /// </summary>
+        public SyntaxList<SeparatedElement<Expression>> TeamList { get; }
+        
+        /// <summary>
+        /// The close bracket token.
+        /// </summary>
+        public SyntaxToken CloseBracket { get; }
+        
+        /// <summary>
+        /// The close parenthesis token.
+        /// </summary>
+        public SyntaxToken CloseParen { get; }
+        
+        /// <summary>
+        /// Constructs a new instance of <see cref="MemberofExpression"/>.
+        /// </summary>
+        internal MemberofExpression(SyntaxKind kind, Expression left, SyntaxToken @operator, SyntaxToken openParen, SyntaxToken openBracket, SyntaxList<SeparatedElement<Expression>> teamList, SyntaxToken closeBracket, SyntaxToken closeParen, IReadOnlyList<Diagnostic> diagnostics = null) : base(diagnostics)
+        {
+            this.kind = kind;
+            this.Left = Attach(left);
+            this.Operator = Attach(@operator);
+            this.OpenParen = Attach(openParen);
+            this.OpenBracket = Attach(openBracket);
+            this.TeamList = Attach(teamList);
+            this.CloseBracket = Attach(closeBracket);
+            this.CloseParen = Attach(closeParen);
+            this.Init();
+        }
+        
+        public override int ChildCount => 7;
+        
+        public override SyntaxElement GetChild(int index)
+        {
+            switch (index)
+            {
+                case 0: return Left;
+                case 1: return Operator;
+                case 2: return OpenParen;
+                case 3: return OpenBracket;
+                case 4: return TeamList;
+                case 5: return CloseBracket;
+                case 6: return CloseParen;
+                default: throw new ArgumentOutOfRangeException();
+            }
+        }
+        
+        public override string GetName(int index)
+        {
+            switch (index)
+            {
+                case 0: return nameof(Left);
+                case 1: return nameof(Operator);
+                case 2: return nameof(OpenParen);
+                case 3: return nameof(OpenBracket);
+                case 4: return nameof(TeamList);
+                case 5: return nameof(CloseBracket);
+                case 6: return nameof(CloseParen);
+                default: throw new ArgumentOutOfRangeException();
+            }
+        }
+        
+        protected override CompletionHint GetCompletionHintCore(int index)
+        {
+            switch (index)
+            {
+                case 1: return CompletionHint.Syntax;
+                case 2: return CompletionHint.Syntax;
+                case 3: return CompletionHint.Syntax;
+                case 4: return CompletionHint.Scalar;
+                case 5: return CompletionHint.Syntax;
+                case 6: return CompletionHint.Syntax;
+                default: return CompletionHint.Inherit;
+            }
+        }
+        
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitMemberofExpression(this);
+        }
+        public override TResult Accept<TResult>(SyntaxVisitor<TResult> visitor)
+        {
+            return visitor.VisitMemberofExpression(this);
+        }
+        
+        protected override SyntaxElement CloneCore()
+        {
+            return new MemberofExpression(this.Kind, (Expression)Left?.Clone(), (SyntaxToken)Operator?.Clone(), (SyntaxToken)OpenParen?.Clone(), (SyntaxToken)OpenBracket?.Clone(), (SyntaxList<SeparatedElement<Expression>>)TeamList?.Clone(), (SyntaxToken)CloseBracket?.Clone(), (SyntaxToken)CloseParen?.Clone(), this.SyntaxDiagnostics);
+        }
+    }
+    #endregion /* class MemberofExpression */
+    
     #region class InExpression
     /// <summary>
     /// A node in the kusto syntax that represents an in expression.
@@ -13079,6 +13201,7 @@ namespace Kusto.Language.Syntax
         public abstract void VisitExpressionCouple(ExpressionCouple node);
         public abstract void VisitPrefixUnaryExpression(PrefixUnaryExpression node);
         public abstract void VisitBinaryExpression(BinaryExpression node);
+        public abstract void VisitMemberofExpression(MemberofExpression node);
         public abstract void VisitInExpression(InExpression node);
         public abstract void VisitHasAnyExpression(HasAnyExpression node);
         public abstract void VisitHasAllExpression(HasAllExpression node);
@@ -13321,6 +13444,10 @@ namespace Kusto.Language.Syntax
             this.DefaultVisit(node);
         }
         public override void VisitBinaryExpression(BinaryExpression node)
+        {
+            this.DefaultVisit(node);
+        }
+        public override void VisitMemberofExpression(MemberofExpression node)
         {
             this.DefaultVisit(node);
         }
@@ -13915,6 +14042,7 @@ namespace Kusto.Language.Syntax
         public abstract TResult VisitExpressionCouple(ExpressionCouple node);
         public abstract TResult VisitPrefixUnaryExpression(PrefixUnaryExpression node);
         public abstract TResult VisitBinaryExpression(BinaryExpression node);
+        public abstract TResult VisitMemberofExpression(MemberofExpression node);
         public abstract TResult VisitInExpression(InExpression node);
         public abstract TResult VisitHasAnyExpression(HasAnyExpression node);
         public abstract TResult VisitHasAllExpression(HasAllExpression node);
@@ -14157,6 +14285,10 @@ namespace Kusto.Language.Syntax
             return this.DefaultVisit(node);
         }
         public override TResult VisitBinaryExpression(BinaryExpression node)
+        {
+            return this.DefaultVisit(node);
+        }
+        public override TResult VisitMemberofExpression(MemberofExpression node)
         {
             return this.DefaultVisit(node);
         }

@@ -1203,21 +1203,14 @@ namespace Kusto.Language.Parsing
 
             var MemberofParameterList = 
                 Rule(
-                    Token(SyntaxKind.OpenParenToken),
-                    Token(SyntaxKind.OpenBracketToken),
+                    RequiredToken(SyntaxKind.OpenParenToken),
+                    RequiredToken(SyntaxKind.OpenBracketToken),
                     CommaList(StringLiteral, MissingStringLiteralNode, true),
-                    Token(SyntaxKind.CloseBracketToken),
-                    Token(SyntaxKind.CloseParenToken),
+                    RequiredToken(SyntaxKind.CloseBracketToken),
+                    RequiredToken(SyntaxKind.CloseParenToken),
 
-                    (openParen, openBracket, list, closeBracket, closeParen) => {
-                        return new CompoundStringLiteralExpression(
-                            new SyntaxList<SyntaxToken>(
-                                list.Select( x => {
-                                    var y = x.Element.GetFirstToken();
-                                    return SyntaxToken.Literal(y.Trivia, y.Text, y.Kind, y.SyntaxDiagnostics);
-                                }).ToList()
-                            )
-                        );
+                    (openParen, openBracket, teamList, closeBracket, closeParen) => {
+                        return Tuple.Create(openParen, openBracket, teamList, closeBracket, closeParen);
                     });
 
             var Equality =
@@ -1251,7 +1244,7 @@ namespace Kusto.Language.Parsing
                             Rule(_left, Token(SyntaxKind.HasAnyKeyword, CompletionKind.ScalarInfix, ctext: SyntaxFacts.GetText(SyntaxKind.HasAnyKeyword) + " (|)"), InOperatorExpressionList,
                                 (left, op, right) => (Expression)new HasAnyExpression(SyntaxKind.HasAnyKeyword, left, op, right)),
 
-                              Rule(_left, Token(SyntaxKind.HasAllKeyword, CompletionKind.ScalarInfix, ctext: SyntaxFacts.GetText(SyntaxKind.HasAllKeyword) + " (|)"), InOperatorExpressionList,
+                            Rule(_left, Token(SyntaxKind.HasAllKeyword, CompletionKind.ScalarInfix, ctext: SyntaxFacts.GetText(SyntaxKind.HasAllKeyword) + " (|)"), InOperatorExpressionList,
                                 (left, op, right) => (Expression)new HasAllExpression(SyntaxKind.HasAllKeyword, left, op, right)),
 
                             Rule(_left, Token(SyntaxKind.BetweenKeyword, CompletionKind.ScalarInfix, ctext: SyntaxFacts.GetText(SyntaxKind.BetweenKeyword) + " (|)"), ExpressionCouple,
@@ -1260,8 +1253,11 @@ namespace Kusto.Language.Parsing
                             Rule(_left, Token(SyntaxKind.NotBetweenKeyword, CompletionKind.ScalarInfix, ctext: SyntaxFacts.GetText(SyntaxKind.NotBetweenKeyword) + " (|)"), ExpressionCouple,
                                 (left, op, right) => (Expression)new BetweenExpression(SyntaxKind.NotBetweenExpression, left, op, right)),
                                 
-                            Rule(_left, Token(SyntaxKind.MemberofOperator, CompletionKind.ScalarInfix, ctext: SyntaxFacts.GetText(SyntaxKind.MemberofOperator) + " (|)"), MemberofParameterList,
-                                (left, op, right) => (Expression)new BinaryExpression(SyntaxKind.MemberofExpression, left , op, right))
+                            Rule(
+                                _left,
+                                Token(SyntaxKind.MemberofOperator, CompletionKind.ScalarInfix, ctext: SyntaxFacts.GetText(SyntaxKind.MemberofOperator) + " (|)"), 
+                                MemberofParameterList,
+                                (left, op, parameterList) => (Expression)new MemberofExpression(SyntaxKind.MemberofExpression, left , op, parameterList.Item1, parameterList.Item2, parameterList.Item3, parameterList.Item4, parameterList.Item5))
                             )));
 
             var LogicalAnd =

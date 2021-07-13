@@ -422,6 +422,24 @@ GeneratedCslNodeClass[] CslTreeClasses = new GeneratedCslNodeClass[]
 
     new GeneratedCslNodeClass
     {
+        Name = "MemberofExpression",
+        Doc = "A node in the kusto syntax that represents a memberof expression.",
+        Base = "Expression",
+        Sealed = true,
+        Properties = new GeneratedProperty[]
+        {
+            new GeneratedProperty { Name = "Left", Type = "Expression", Doc = "The left side expression."},
+            new GeneratedProperty { Name = "Operator", Type = "SyntaxToken", Doc = "The memberof keyword.", Completion="Syntax"},
+            new GeneratedProperty { Name = "OpenParen", Type = "SyntaxToken", Doc = "The open parenthesis token.", Completion="Syntax"},
+            new GeneratedProperty { Name = "OpenBracket", Type = "SyntaxToken", Doc = "The open bracket token.", Completion="Syntax"},
+            new GeneratedProperty { Name = "TeamList", Type = "SyntaxList<SeparatedElement<Expression>>", Doc = "The list of teams.", Completion="Scalar"},
+            new GeneratedProperty { Name = "CloseBracket", Type = "SyntaxToken", Doc = "The close bracket token.", Completion="Syntax"},
+            new GeneratedProperty { Name = "CloseParen", Type = "SyntaxToken", Doc = "The close parenthesis token.", Completion="Syntax"}
+        }
+    },
+
+    new GeneratedCslNodeClass
+    {
         Name = "InExpression",
         Doc = "A node in the kusto syntax that represents an in expression.",
         Base = "Expression",

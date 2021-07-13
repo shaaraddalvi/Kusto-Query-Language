@@ -383,6 +383,40 @@ namespace Kusto.Language.Binding
                 }
             }
 
+            public override SemanticInfo VisitMemberofExpression(MemberofExpression node)
+            {
+                var dx = s_diagnosticListPool.AllocateFromPool();
+                var args = s_expressionListPool.AllocateFromPool();
+                try
+                {
+                    args.Add(node.Left);
+
+                    for (int i = 0; i < node.TeamList.Count; i++)
+                    {
+                        args.Add(node.TeamList[i].Element);
+                    }
+
+                    var op = SyntaxFacts.GetOperatorKind(node.Operator.Kind);
+                    var semanticInfo =  _binder.GetOperatorInfo(op, args, node.Operator);
+
+                    if(!node.Left.ReferencedSymbol.IsIdentity)
+                    {
+                        var diag = DiagnosticFacts.GetTokenMustBeIdentity();
+                        List<Diagnostic> diagnostics = semanticInfo.Diagnostics.ToList();
+                        diagnostics.Add(diag.WithLocation(node.Left.TextStart, node.Left.End - node.Left.TextStart));
+
+                        return semanticInfo.WithDiagnostics(diagnostics.AsReadOnly());
+                    }
+
+                    return semanticInfo;
+                }
+                finally
+                {
+                    s_diagnosticListPool.ReturnToPool(dx);
+                    s_expressionListPool.ReturnToPool(args);
+                }
+            }
+
             public override SemanticInfo VisitInExpression(InExpression node)
             {
                 var dx = s_diagnosticListPool.AllocateFromPool();

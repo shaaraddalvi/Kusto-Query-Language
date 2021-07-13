@@ -7,7 +7,13 @@ namespace Test
     {
         static void Main(string[] args)
         {
-            TestQueries.analyze();
+            //TestQueries.analyze();
+
+            //Console.WriteLine("\n");
+            //TestDiagnostics.PrintDiagnostics();
+
+            //Console.WriteLine("\n");
+            TestCompletion.PrintCompletionItems();
         }
     }
 }
