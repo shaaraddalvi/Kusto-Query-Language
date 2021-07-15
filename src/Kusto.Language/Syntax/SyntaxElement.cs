@@ -292,6 +292,8 @@ namespace Kusto.Language.Syntax
             return false;
         }
 
+        
+
         /// <summary>
         /// Gets the index of the child node, or -1 if the node is not a child.
         /// </summary>

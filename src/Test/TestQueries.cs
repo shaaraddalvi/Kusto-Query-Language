@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Test
 {
-    class TestQueries
+    public class TestQueries
     {
 
         //const Kusto.Language.Syntax.SyntaxKind ProjectOperator = Kusto.Language.Syntax.SyntaxKind.ProjectOperator;
@@ -71,7 +71,7 @@ namespace Test
             SummarizeByClause.ToString() ,SortOperator.ToString() , "JoinOperator" };
         List<string> operatorsList = operators.ToList<string>();
 
-        // New Approach
+        
         List<string> dividedSubStringsPipe = new List<string>();
         List<string> translatedSubQuery = new List<string>();
 
@@ -123,8 +123,8 @@ namespace Test
 
 
 
-        Dictionary<string, Kusto.Language.Syntax.SyntaxElement> allNestedTables = new Dictionary<string, Kusto.Language.Syntax.SyntaxElement>();
-        public void preProcessingNew(string input)
+        public Dictionary<string, Kusto.Language.Syntax.SyntaxElement> allNestedTables = new Dictionary<string, Kusto.Language.Syntax.SyntaxElement>();
+        public Dictionary<string, Kusto.Language.Syntax.SyntaxElement> preProcessingNew(string input)
         {
             var query = KustoCode.ParseAndAnalyze(input);
             var root = query.Syntax;
@@ -149,6 +149,7 @@ namespace Test
                     }
                 }
             }, n => { });
+            return allNestedTables;
         }
         int iNestedMap = 0;
         public void preprocessingNewHelper(Kusto.Language.Syntax.SyntaxElement node)
@@ -168,18 +169,24 @@ namespace Test
                         nodesIgnored.Add(n.GetChild(0));
                         nodesIgnored.Add(n.GetChild(2));
                         iNestedMap++;
-                        string temp = "TablePSN" + iNestedMap.ToString();
+                        string temp = "Expression" + iNestedMap.ToString();
                         allNestedTables.Add(temp, n);
                     }
                 }
             }, n => { });
         }
 
-        public string solveNewNew(string input)
+        public string gettingSqlQuery(string input)
         {
             string output = "";
             string temp = input;
+            /*PreProcessingNew
+             - will identify all the nested queries and store them in allNestedTables
+             - 
+            */
+            //Dictionary<string, Kusto.Language.Syntax.SyntaxElement> allNestedTables = new Dictionary<string, Kusto.Language.Syntax.SyntaxElement>();
             preProcessingNew(input);
+
             if (allNestedTables.Count != 0)
             {
                 output += "; WITH ";
@@ -188,7 +195,7 @@ namespace Test
             {
                 string val = allNestedTables.GetValueOrDefault(key).ToString().TrimStart().TrimEnd();
                 TestQueries t = new TestQueries();
-                output += key + " AS" + "(" + t.gettingSqlQueryNew(val) + ")" + ",";
+                output += key + " AS" + "(" + t.getSqlFromSingleKqlStatement_NoNested(val) + ")" + ",";
                 temp = temp.Replace(val, key);
             }
             //if (allNestedTables.Count != 0) output = output.Remove(output.Length-1);
@@ -197,7 +204,7 @@ namespace Test
             if (dividedSubStringsPipe.Count == 1)
             {
                 if (allNestedTables.Count != 0) output = output.Remove(output.Length - 1);
-                output += (" " + gettingSqlQueryNew(temp));
+                output += (" " + getSqlFromSingleKqlStatement_NoNested(temp));
 
             }
             else
@@ -209,13 +216,13 @@ namespace Test
                 for (int i = 0; i < dividedSubStringsPipe.Count; i++)
                 {
                     TestQueries t = new TestQueries();
-                    translatedSubQuery.Add(t.gettingSqlQueryNew(dividedSubStringsPipe[i]));
+                    translatedSubQuery.Add(t.getSqlFromSingleKqlStatement_NoNested(dividedSubStringsPipe[i]));
                 }
                 for (int i = 1; i < translatedSubQuery.Count; i++)
                 {
                     if (Tree.CheckInTree(dividedSubStringsPipe[i - 1], "JoinOperator") != null)
                     {
-                        iNestedMap++; string key = "TablePSN" + iNestedMap.ToString();
+                        iNestedMap++; string key = "Expression" + iNestedMap.ToString();
                         output += key + " AS" + "(" + translatedSubQuery[i - 1] + ")" + ",";
                         translatedSubQuery[i] = translatedSubQuery[i].Replace("dummyTable", key);
                     } else
@@ -278,6 +285,7 @@ namespace Test
                     for (int i = 0; i < num_child; i++)
                     {
                         individualExpressions.Add(node.GetChild(i));
+
                     }
                     // List<string> individualExpressions = divideExpressionsSummarizeNode((Kusto.Language.Syntax.SyntaxNode)n.GetChild(2));
                     //hash_Select.Add("summarize", individualExpressions );//--> need to make all types to be syntaxElement
@@ -438,20 +446,20 @@ namespace Test
             output = orderby.process();
             return output;
         }
-        public string gettingSqlQueryNew(string kqlQuery)
+        public string getSqlFromSingleKqlStatement_NoNested(string kqlQuery)
         {
 
             //preProcessTraverseTree(kqlQuery);
             traverseTree(kqlQuery);
             separateWhereHaving();
             string output = "";
-            output += selectInfo();
-            output += fromInfo();
-            string wherestring = whereInfo();
-            output += whereInfo();
-            output += groupByInfo();
-            output += havingInfo();
-            output += orderByInfo();
+            string select = selectInfo();output += select;  if(select != "") output += "\n"; ;
+
+            string from  = fromInfo(); output += from; if (from != "") output += "\n";
+            string where  = whereInfo(); output += where; if (where != "") output += "\n";
+            string groupBy  = groupByInfo(); output += groupBy; if (groupBy != "") output += "\n";
+            string having  = havingInfo(); output += having; if (having != "") output += "\n";
+            string orderBy = orderByInfo(); output += orderBy; if (orderBy != "") output += "\n";
 
             return output;
         }

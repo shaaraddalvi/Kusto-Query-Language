@@ -7,6 +7,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test", "Test.csproj", "{442
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kusto.Language", "..\Kusto.Language\Kusto.Language.csproj", "{E6479E65-1BAF-42CB-A3EA-B3CAAA466838}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnitTestProject", "..\UnitTestProject\UnitTestProject.csproj", "{C5962201-89FB-4C68-9405-DA8CD18C475D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KQLtoSQLtranslator", "..\MvcMovie\KQLtoSQLtranslator.csproj", "{872D49D0-F65E-4839-BCB7-CEC554FFFE75}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +25,14 @@ Global
 		{E6479E65-1BAF-42CB-A3EA-B3CAAA466838}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E6479E65-1BAF-42CB-A3EA-B3CAAA466838}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E6479E65-1BAF-42CB-A3EA-B3CAAA466838}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5962201-89FB-4C68-9405-DA8CD18C475D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5962201-89FB-4C68-9405-DA8CD18C475D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5962201-89FB-4C68-9405-DA8CD18C475D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5962201-89FB-4C68-9405-DA8CD18C475D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{872D49D0-F65E-4839-BCB7-CEC554FFFE75}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{872D49D0-F65E-4839-BCB7-CEC554FFFE75}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{872D49D0-F65E-4839-BCB7-CEC554FFFE75}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{872D49D0-F65E-4839-BCB7-CEC554FFFE75}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

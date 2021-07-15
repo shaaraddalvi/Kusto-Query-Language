@@ -18,61 +18,38 @@ namespace Test
     "| sort by CreatedDateSK asc nulls first";
         static void Main(string[] args)// Gg T | project a,b,c,d | where e = 10
         {
-            String[] queries = new String[] {      "T",  // 0
-                                                    "T | project a", // 1
-                                                    "T | project a,b,c", // 2
-                                                    "T | take 50",    // 3
-                                                    
-                                                    "T | project a,b | take 5", // 6
-                                                    "T | take 5 | project a,b", // 7
-                                                    "T | where a > 10", // 8
-                                                    "T | where a > 10 and c < 5 or d > 6 ",  // 9
-                                                    "T | project a,b | take 5 | where a > 6 and b > 7", // 10
-                                                    "T | where isnotnull(resultCode)",  // 11
-                                                    "T | project a | where isnotnull(resultCode)",  // 12
-                                                    "T | where a > 10 | where b > 5",   // 13
-                                                    "T | where a > 10 | where isnotnull(resultCode)  ", // 14
-                                                    "T | where 0 == avg(col)",  // 15
-                                                    "T | summarize by name, type", // 16
-                                                    "T | summarize max(salary)", // 17
-                                                    "T | summarize min(salary)", // 18
-                                                    "T | summarize max(salary),min(stocks), max(workingHours) ", // 19
-                                                    "T | summarize sum(salary) ",  // 20
-                                                    "T | summarize stdev(salary) ",  // 21
-                                                    //"T | summarize isdouble(salary) ",  // 22
-                                                    "T | summarize max(salary),variance(salary) by state ",  // 22 --> SELECT state,MAX(salary),VAR(salary) FROM T GROUP BY state
-                                                    "T | summarize max(salary), sum(salary), stdev(salary)", // 23
-                                                    "T | summarize avg(duration) by name",  // 24
-                                                    "T | project name, timestamp| order by timestamp desc nulls last", // 25
-                                                    "T | summarize sum(salary) by state | take 50 | where salary > 100 and state> 6",  // 26
-                                                   
-                                                    "T | summarize count() | limit 5",  // 27
-                                                    "T | where col in ('value1', 'value2')", // 28
-                                                    "T | where col !in ('value1', 'value2')",  // 29
-                                                     "T | where a > tolong(1100)",  // 30 
-                                                    "T | where a in (tolong(1100)) ",  // 31
-                                                     "T | where avg(todouble(a)) > 2",   // 32
-                                                     "T | project a | where avg(column) > 4",  // 33
-                                                    "T | project a | where avg(column) > 4 + column/2 +   max(column)",  // 34
-                                                    "T | where sum(iff(TimeToOpenInSeconds <= 25200, 1, 0)) == 3",  // 35
-                                                    "T | summarize AvgD = avg(duration), SumD = sum(days) by Name=operationName",  // 36
-                                                    "T | summarize AvgD = avg(duration), Count = count() by Name=operationName, RollNumber", // 37
-                                                    "T | summarize AvgTimeToOpen=avg(todouble(TimeToOpenInSeconds)), AvgTimeToMerge=avg(todouble(TimeToMergeInSeconds)) | project CreatedDateSK, AvgTimeToOpen",  // 38
-                                                     "T | project a | where a == 1 and b in ((Table |  where a > 5 )) ", // 39
-                                                    "T | join kind =  inner ((exceptions)) on $left.operation_Id == $right.operation_Id",  // 40
-                                                    "T | join kind = rightouter  (exceptions) on $left.operation_Id == $right.operation_Id",  // 41
-                                                    // SELECT * FROM T RIGHT OUTER JOIN exceptions ON T.operation_Id = exceptions.operation_Id;
-                                                    // SELECT * FROM T RIGHT OUTER JOIN exceptions ON T.operation_Id;
-                                                    "T | join kind = fullouter  (exceptions) on $left.operation_Id == $right.operation_Id",  // 42
-                                                    "T | join kind = leftouter  (exceptions) on $left.operation_Id == $right.operation_Id",  // 43
-                                                    "T | join kind = inner (exceptions | project a) on $left.operation_Id == $right.operation_Id", // 44
-                                                    // SELECT * FROM T RIGHT OUTER JOIN ((SELECT a FROM exceptions)) ON T.operation_Id;
+            String[] queries = new String[] {       "T",  
+                                                    "T | project a,b,c", 
+                                                    "T | take 50",   
+                                                    "T | where a > 10",
+                                                    "T | where a > 10 and c < 5 or d > 6 ",
+                                                    "T | where isnotnull(resultCode)",
+                                                    "T | where a > 10 | where b > 5",
+                                                    "T | where col in ('value1', 'value2')", 
+                                                    "T | where col !in ('value1', 'value2')", 
+                                                    "T | where a in (tolong(1100)) ", 
+                                                    "T | project a,b | take 5 | where a > 6 and b > 7",
+                                                    "T | summarize count(Orders) by State| where count(Orders) > 5",
+                                                    "T | summarize by name, type", 
+                                                    "T | summarize max(salary),min(stocks), max(workingHours) ", 
+                                                    "T | summarize max(salary),variance(salary) by state ",  
+                                                    "T | summarize max(salary), sum(salary), stdev(salary)", 
+                                                    "T | summarize AvgD = avg(duration), SumD = sum(days) by Name=operationName",  
+                                                    "T | summarize AvgD = avg(duration), Count = count() by Name=operationName, RollNumber", 
+                                                    "T | summarize AvgTimeToOpen=avg(todouble(TimeToOpenInSeconds)), AvgTimeToMerge=avg(todouble(TimeToMergeInSeconds))", 
+                                                    "T | project name, timestamp| order by timestamp desc nulls last", 
+                                                    "T | summarize sum(salary) by state | take 50 | where salary > 100 and state> 6", 
+                                                    "T | project a | where a == 1 and b in ((Table |  where a > 5 )) ", 
+                                                    "T | join kind =  inner ((exceptions)) on $left.operation_Id == $right.operation_Id",  
+                                                    "T | join kind = rightouter  (exceptions) on $left.operation_Id == $right.operation_Id", 
+                                                    "T | join kind = fullouter  (exceptions) on $left.operation_Id == $right.operation_Id", 
+                                                    "T | join kind = leftouter  (exceptions) on $left.operation_Id == $right.operation_Id",  
+                                                    "T | join kind = inner (exceptions | project operation_Id) on $left.operation_Id == $right.operation_Id", 
                                                     "T | join kind = inner(exceptions | project a ) on a | join kind = inner(Table | project a) on a",
                                                     "T | join kind = inner(Table1 | project a) on $left.a == $right.a | join kind = inner(Table2 | project a) on $left.a == $right.a",
-                                                    Program.sample_query,  // 45
-                                                    "T | limit 10 | summarize count()",  // 46  
-                                                    "T | project a | where isnotnull(a)"
                                                     
+                                                   
+
 
 
 
@@ -106,7 +83,7 @@ namespace Test
                 Console.WriteLine(input);
                 //TestQueries.tree(input);
                 TestQueries test = new TestQueries();
-                string output = (test.solveNewNew(input));
+                string output = (test.gettingSqlQuery(input));
                 Console.WriteLine(output);
                 Console.WriteLine();
             }
@@ -186,7 +163,9 @@ ORDER BY  CreatedDateSK ASC
 
 /*
  * Limitations of project - take 1 + 2
- * 
+ *   "T | summarize count() | limit 5",  // 27
+ *   "T | project a | where avg(column) > 4 + column/2 +   max(column)",  // 34
+                                                    "T | where sum(iff(TimeToOpenInSeconds <= 25200, 1, 0)) == 3",  // 35
 */
 
 
