@@ -124,7 +124,7 @@ namespace Test
 
 
         public Dictionary<string, Kusto.Language.Syntax.SyntaxElement> allNestedTables = new Dictionary<string, Kusto.Language.Syntax.SyntaxElement>();
-        public Dictionary<string, Kusto.Language.Syntax.SyntaxElement> preProcessingNew(string input)
+        public void preProcessing(string input)
         {
             var query = KustoCode.ParseAndAnalyze(input);
             var root = query.Syntax;
@@ -141,7 +141,7 @@ namespace Test
                 }
                 if ((!nodesIgnored.Contains(n)) & operatorsList.Contains(n.Kind.ToString()))
                 {
-                    preprocessingNewHelper(n);
+                    preprocessingHelper(n);
                     int child = n.ChildCount;
                     for (int i = 0; i < child; i++)
                     {
@@ -149,10 +149,10 @@ namespace Test
                     }
                 }
             }, n => { });
-            return allNestedTables;
+            
         }
         int iNestedMap = 0;
-        public void preprocessingNewHelper(Kusto.Language.Syntax.SyntaxElement node)
+        public void preprocessingHelper(Kusto.Language.Syntax.SyntaxElement node)
         {
             List<Kusto.Language.Syntax.SyntaxElement> nodesIgnored = new List<Kusto.Language.Syntax.SyntaxElement>();
             Kusto.Language.Syntax.SyntaxElement.WalkNodes((Kusto.Language.Syntax.SyntaxNode)node, n =>
@@ -185,7 +185,7 @@ namespace Test
              - 
             */
             //Dictionary<string, Kusto.Language.Syntax.SyntaxElement> allNestedTables = new Dictionary<string, Kusto.Language.Syntax.SyntaxElement>();
-            preProcessingNew(input);
+            preProcessing(input);
 
             if (allNestedTables.Count != 0)
             {
