@@ -13,13 +13,13 @@ namespace KQLtoSQLtranslator.Controllers
     public class SqlController : ControllerBase
     {
         [HttpPost]
-        public string PostSql(Query request)
+        public Query PostSql(Query request)
         {
             string query = request.query;
             Console.WriteLine(query);
             if (query.Trim() == "")
             {
-                return String.Empty;
+                return null;
             }
 
             Response.Headers.TryAdd("Access-Control-Allow-Origin", "*");
@@ -28,7 +28,10 @@ namespace KQLtoSQLtranslator.Controllers
             string output;
             output = t.gettingSqlQuery(query);
 
-            return output;
+            return new Query
+            {
+                query = output
+            };
         }
     }
 
