@@ -22,6 +22,8 @@ namespace KQLtoSQLtranslator.Controllers
                 return String.Empty;
             }
 
+            Response.Headers.TryAdd("Access-Control-Allow-Origin", "*");
+
             KqltoSqlTranslatorClass t = new KqltoSqlTranslatorClass();
             string output;
             output = t.gettingSqlQuery(query);
