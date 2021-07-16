@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Test
 {
-    class OrderBy
+    class OrderBy : SqlClause
     {
         string output;
         Boolean isPresent = false;
@@ -24,7 +24,7 @@ namespace Test
                 if (orderByColumns.Count > 0) isPresent = true;
             }
         }
-        public string process()
+        public override string Process()
         {
             string output = "";
             if (isPresent)

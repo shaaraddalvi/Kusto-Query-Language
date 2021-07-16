@@ -23,10 +23,7 @@ namespace Test
 
 
                 }
-                //if(n == (Kusto.Language.Syntax.SyntaxNode)left)
-                {
-
-                }
+                
 
             }, n => { });
             return output;

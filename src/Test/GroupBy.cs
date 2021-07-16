@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Test
 {
-    class GroupBy
+    class GroupBy : SqlClause
     {
         string output;
         Dictionary<string, List<string>> hash_Select;
@@ -22,7 +22,7 @@ namespace Test
             this.summarizeByColumns = summarizeByColumns;
         }
 
-        public string process()
+        public override string Process()
         {
             string output = "";
            

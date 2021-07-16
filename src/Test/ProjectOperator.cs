@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Test
 {
-    class ProjectOperator
+    class ProjectOperator : Operator
     {
         string output;
         List<string> project_Columns;
@@ -34,7 +34,7 @@ namespace Test
             }
         }
 
-        public string process()
+        public override string Process()
         {
             //string output = "";
             if (isPresent)
@@ -48,5 +48,6 @@ namespace Test
             return output;
         }
 
+        
     }
 }

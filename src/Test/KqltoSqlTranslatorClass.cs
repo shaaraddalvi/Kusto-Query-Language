@@ -6,24 +6,19 @@ using System.Linq;
 
 namespace Test
 {
-    public class TestQueries
+    public class KqltoSqlTranslatorClass
     {
 
-        //const Kusto.Language.Syntax.SyntaxKind ProjectOperator = Kusto.Language.Syntax.SyntaxKind.ProjectOperator;
+        
         const Kusto.Language.Syntax.SyntaxKind TakeOperator = Kusto.Language.Syntax.SyntaxKind.TakeOperator;
-        //const Kusto.Language.Syntax.SyntaxKind WhereOperator = Kusto.Language.Syntax.SyntaxKind.FilterOperator;
+        
         const Kusto.Language.Syntax.SyntaxKind SummarizeOperator = Kusto.Language.Syntax.SyntaxKind.SummarizeOperator;
         const Kusto.Language.Syntax.SyntaxKind SummarizeByClause = Kusto.Language.Syntax.SyntaxKind.SummarizeByClause;
         const Kusto.Language.Syntax.SyntaxKind SortOperator = Kusto.Language.Syntax.SyntaxKind.SortOperator;
         const Kusto.Language.Syntax.SyntaxKind OrderingClause = Kusto.Language.Syntax.SyntaxKind.OrderingClause;
         const Kusto.Language.Syntax.SyntaxKind FunctionCallExpression = Kusto.Language.Syntax.SyntaxKind.FunctionCallExpression;
         const Kusto.Language.Syntax.SyntaxKind LongLiteralExpression = Kusto.Language.Syntax.SyntaxKind.LongLiteralExpression;
-        const string Add = "AddExpression";
-        const string Subtract = "SubtractExpression";
-        const string Multiply = "MultiplyExpression";
-        const string Divide = "DivideExpression";
-        const string Equal = "EqualExpression";
-        const string GreaterThan = "GreaterThanExpression";
+        
         const string ascending = "asc";
         const string descending = "desc";
         const string PipeSymbol = "PipeExpression";
@@ -176,17 +171,9 @@ namespace Test
             }, n => { });
         }
 
-        public string gettingSqlQuery(string input)
+        private string[] nestedQueries(string output, string temp)
         {
-            string output = "";
-            string temp = input;
-            /*PreProcessingNew
-             - will identify all the nested queries and store them in allNestedTables
-             - 
-            */
-            //Dictionary<string, Kusto.Language.Syntax.SyntaxElement> allNestedTables = new Dictionary<string, Kusto.Language.Syntax.SyntaxElement>();
-            preProcessing(input);
-
+            string[] outputs = new string[2];
             if (allNestedTables.Count != 0)
             {
                 output += "; WITH ";
@@ -194,12 +181,43 @@ namespace Test
             foreach (string key in allNestedTables.Keys)
             {
                 string val = allNestedTables.GetValueOrDefault(key).ToString().TrimStart().TrimEnd();
-                TestQueries t = new TestQueries();
+                KqltoSqlTranslatorClass t = new KqltoSqlTranslatorClass();
                 output += key + " AS" + "(" + t.getSqlFromSingleKqlStatement_NoNested(val) + ")" + ",";
                 temp = temp.Replace(val, key);
             }
-            //if (allNestedTables.Count != 0) output = output.Remove(output.Length-1);
-            //output += " \n";
+            outputs[0] = output; outputs[1] = temp;
+            return outputs;
+        }
+        private List<string> formatting_adddummyTableNames(List<string> dividedSubStringsPipe)
+        {
+            for (int i = 1; i < dividedSubStringsPipe.Count; i++)
+            {
+                dividedSubStringsPipe[i] = "dummyTable | " + dividedSubStringsPipe[i];
+            }
+            return dividedSubStringsPipe;
+        }
+        private List<string> translatedSubQueries(List<string> dividedSubStringsPipe , List<string> translatedSubQuery)
+        {
+            for (int i = 0; i < dividedSubStringsPipe.Count; i++)
+            {
+                KqltoSqlTranslatorClass t = new KqltoSqlTranslatorClass();
+                translatedSubQuery.Add(t.getSqlFromSingleKqlStatement_NoNested(dividedSubStringsPipe[i]));
+            }
+            return translatedSubQuery;
+
+        }
+
+        public string gettingSqlQuery(string input)
+        {
+            string output = "";
+            string temp = input;
+            // -Preprocessing  will identify all the nested queries and store them in allNestedTables
+            preProcessing(input);
+            //nestedQueries function will translate nested queries into sql and use common table expressions for them
+            string[] outputs = nestedQueries(output, temp);
+            output = outputs[0];
+            temp = outputs[1];
+            //dividePipeExpressions will separate query into subqueries on the basis of bar token
             dividePipeExpressions(temp);
             if (dividedSubStringsPipe.Count == 1)
             {
@@ -209,15 +227,8 @@ namespace Test
             }
             else
             {
-                for (int i = 1; i < dividedSubStringsPipe.Count; i++)
-                {
-                    dividedSubStringsPipe[i] = "dummyTable | " + dividedSubStringsPipe[i];
-                }
-                for (int i = 0; i < dividedSubStringsPipe.Count; i++)
-                {
-                    TestQueries t = new TestQueries();
-                    translatedSubQuery.Add(t.getSqlFromSingleKqlStatement_NoNested(dividedSubStringsPipe[i]));
-                }
+                dividedSubStringsPipe = formatting_adddummyTableNames(dividedSubStringsPipe);
+                translatedSubQuery = translatedSubQueries(dividedSubStringsPipe, translatedSubQuery);
                 for (int i = 1; i < translatedSubQuery.Count; i++)
                 {
                     if (Tree.CheckInTree(dividedSubStringsPipe[i - 1], "JoinOperator") != null)
@@ -228,7 +239,10 @@ namespace Test
                     } else
                         translatedSubQuery[i] = translatedSubQuery[i].Replace("dummyTable", "((" + translatedSubQuery[i - 1] + "))");
                 }
-                if (allNestedTables.Count != 0) output = output.Remove(output.Length - 1);
+                if (allNestedTables.Count != 0)
+                {
+                    output = output.Remove(output.Length - 1);
+                }
                 output += (" " + translatedSubQuery[translatedSubQuery.Count - 1]);
             }
 
@@ -245,16 +259,13 @@ namespace Test
 
             Kusto.Language.Syntax.SyntaxElement.WalkNodes(root, n => {
 
-                if (n.Kind.ToString() == PipeSymbol)
-                {
-                    numPipeExpression++;
-                }
+               
                 if (n.Kind.ToString() == "ProjectOperator")
                 {
                     isProjectOperatorPresent = true;
                     projectColumns = Tree.TokenNames(n.ToString());
                     hash_Select.Add("project", projectColumns);
-                    orderOperatorsSelect.Add("project");
+                    
                 }
                 if (n.Kind == TakeOperator | n.Kind.ToString() == "TopOperator")
                 {
@@ -278,24 +289,15 @@ namespace Test
                 {
                     isSumaarizeOperatorPresent = true;
                     string summarizeExpressions = n.GetChild(2).ToString();
-                    //List<string> individualExpressions = divideExpressionsSummarize(n.GetChild(2).ToString());
                     Kusto.Language.Syntax.SyntaxElement node = n.GetChild(2);
-                    //List<Kusto.Language.Syntax.SyntaxElement> individualExpressions = new List<Kusto.Language.Syntax.SyntaxElement>();
                     int num_child = node.ChildCount;
                     for (int i = 0; i < num_child; i++)
                     {
                         individualExpressions.Add(node.GetChild(i));
-
                     }
-                    // List<string> individualExpressions = divideExpressionsSummarizeNode((Kusto.Language.Syntax.SyntaxNode)n.GetChild(2));
-                    //hash_Select.Add("summarize", individualExpressions );//--> need to make all types to be syntaxElement
                     hash_Select.Add("summarize", new List<string>());
                     orderOperatorsSelect.Add("summarize");
-                    //List<Kusto.Language.Syntax.SyntaxElement> list_nodes = SeparatedElements(n.GetChild(2));
-                    // Cannot use this concept as it will include separated elements of function calls as well
-
-
-
+                    
                 }
                 if (n.Kind == SummarizeByClause)
                 {
@@ -303,7 +305,7 @@ namespace Test
                     List<Kusto.Language.Syntax.SyntaxElement> list_nodes = Tree.SeparatedElements(n);
                     hash_GroupBy.Add("SeparatedExpressions", list_nodes);
                     nodeByClause = n.ToString();
-                    //summarizeByColumns = TokenNames(n.ToString());
+                    
                 }
                 if (n.Kind == SortOperator)
                 {
@@ -326,10 +328,7 @@ namespace Test
                     join_hash.Add("otherTable", otherTableInfo_Join);
                     join_hash.Add("onInfo", onInfo_Join);
                 }
-                if (n == (Kusto.Language.Syntax.SyntaxNode)onInfo_Join)
-                {
-                    //if(onInfo_Join.GetDescendants<>) 
-                }
+                
                 if (n.Kind == FunctionCallExpression)
                 {
                     isFunctionCallPresent = true;
@@ -337,11 +336,7 @@ namespace Test
                     allFunctioCallNames.Add(list);
                     onlyFunctionNames.Add(list[0]);
                 }
-                if (n.Kind.ToString() == Equal | n.Kind.ToString() == GreaterThan)
-                {
-                    isPunctuationPresent = true;
-                    allPunctuationNames.Add(n.Kind.ToString());
-                }
+                
                 if (n.Kind == LongLiteralExpression)
                 {
                     isLongLiteralPresent = true;
@@ -399,7 +394,7 @@ namespace Test
         {
             string output = "";
             SelectInfo select = new SelectInfo(output, isSumaarizeOperatorPresent, hash_Select, hash_GroupBy, individualExpressions);
-            output = select.process();
+            output = select.Process();
             return output;
         }
 
@@ -411,7 +406,7 @@ namespace Test
             
             string output = "";
             FromInfo from = new FromInfo(join_hash,fromData,allTokenNames);
-            output = from.process();
+            output = from.Process();
             return output;
         }
 
@@ -419,7 +414,7 @@ namespace Test
         {
             string output = "";
             WhereOperator where = new WhereOperator(isWhereOperatorPresent, allWhereExpressions, allWhereAndOr);
-            output = where.process();
+            output = where.Process();
             return output;
         }
 
@@ -427,7 +422,7 @@ namespace Test
         {
             string output = "";
             GroupBy groupBy = new GroupBy(output, hash_Select, hash_GroupBy, individualExpressions, summarizeByColumns);
-            output = groupBy.process();
+            output = groupBy.Process();
             return output;
         }
         public string havingInfo()
@@ -435,7 +430,7 @@ namespace Test
             // Conditions on aggregate functions in where clause - having clause
             string output = "";
             Having having = new Having(output, havingExpressions);
-            output = having.process();
+            output = having.Process();
             return output;
         }
 
@@ -443,24 +438,21 @@ namespace Test
         {
             string output = "";
             OrderBy orderby = new OrderBy(output, orderType, orderByColumns);
-            output = orderby.process();
+            output = orderby.Process();
             return output;
         }
         public string getSqlFromSingleKqlStatement_NoNested(string kqlQuery)
-        {
-
-            //preProcessTraverseTree(kqlQuery);
+        { 
             traverseTree(kqlQuery);
             separateWhereHaving();
             string output = "";
-            string select = selectInfo();output += select;  if(select != "") output += "\n"; ;
-
-            string from  = fromInfo(); output += from; if (from != "") output += "\n";
-            string where  = whereInfo(); output += where; if (where != "") output += "\n";
-            string groupBy  = groupByInfo(); output += groupBy; if (groupBy != "") output += "\n";
-            string having  = havingInfo(); output += having; if (having != "") output += "\n";
-            string orderBy = orderByInfo(); output += orderBy; if (orderBy != "") output += "\n";
-
+            string select = selectInfo();
+            string from  = fromInfo();
+            string where  = whereInfo();
+            string groupBy  = groupByInfo(); 
+            string having  = havingInfo(); 
+            string orderBy = orderByInfo(); 
+            output += select + from + where + groupBy + having + orderBy;
             return output;
         }
 

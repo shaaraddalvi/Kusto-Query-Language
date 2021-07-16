@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Test
 {
-    class Having
+    class Having : SqlClause
     {
         string output;
         List<string> havingExpressions;
@@ -15,7 +15,7 @@ namespace Test
             this.output = output;
             this.havingExpressions = havingExpressions;
         }
-        public string process()
+        public override string Process()
         {
             // Conditions on aggregate functions in where clause - having clause
             if (havingExpressions.Count == 0) return "";

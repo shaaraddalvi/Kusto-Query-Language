@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Test
 {
-    class FromInfo
+    class FromInfo : SqlClause
 
     {
         Dictionary<string, Kusto.Language.Syntax.SyntaxElement> join_hash;
@@ -18,7 +18,7 @@ namespace Test
             this.fromData = fromData;
             this.allTokenNames = allTokenNames;
         }
-        public string process()
+        public override string Process()
         {
             fromData.Add(allTokenNames[0]);
             string output = "";

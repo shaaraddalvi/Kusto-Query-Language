@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Test
 {
-    class SummarizeOperator
+    class SummarizeOperator : Operator
     {
         string output;
         Boolean isPresent;
@@ -22,7 +22,7 @@ namespace Test
             this.temp = temp;
         }
 
-        public string process()
+        public override string Process()
         {
             if (isPresent)
             {

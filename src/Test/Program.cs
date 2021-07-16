@@ -82,7 +82,7 @@ namespace Test
                 string input = queries[i];
                 Console.WriteLine(input);
                 //TestQueries.tree(input);
-                TestQueries test = new TestQueries();
+                KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
                 string output = (test.gettingSqlQuery(input));
                 Console.WriteLine(output);
                 Console.WriteLine();

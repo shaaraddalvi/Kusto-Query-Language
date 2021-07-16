@@ -7,7 +7,7 @@ using Kusto.Language;
 
 namespace Test
 {
-    class WhereOperator
+    class WhereOperator : SqlClause
     {
         Boolean isPresent = false;
         List<List<string>> allWhereExpressions;
@@ -19,7 +19,7 @@ namespace Test
             this.isPresent = isPresent;
         }
 
-        public string process()
+        public override string Process()
         {
             string output = "";
             for (int i = 0; i < allWhereExpressions.Count; i++)

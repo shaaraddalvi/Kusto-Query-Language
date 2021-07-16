@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace Test
 {
-    class FilterOperator
+    public abstract class SqlClause
     {
+        public abstract string Process();
     }
 }

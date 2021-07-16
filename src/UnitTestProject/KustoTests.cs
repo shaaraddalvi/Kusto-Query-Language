@@ -19,7 +19,7 @@ namespace UnitTestProject
         public void TestSelectInfo_NoOperator()
         {
             string kqlQuery = "T";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             string outputSqlQuery = test.selectInfo().TrimStart().TrimEnd();
             string expectedSqlQuery = "SELECT *";
@@ -29,7 +29,7 @@ namespace UnitTestProject
         public void TestSelectInfo_ProjectOperator()
         {
             string kqlQuery = "T | project a , b";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             string outputSqlQuery = test.selectInfo().TrimStart().TrimEnd();  // "SELECT a,  b"
             string expectedSqlQuery = "SELECT a,  b";
@@ -39,7 +39,7 @@ namespace UnitTestProject
         public void TestSelectInfo_TakeOperator()
         {
             string kqlQuery = "T | take 5";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             string outputSqlQuery = test.selectInfo().TrimStart().TrimEnd();
             string expectedSqlQuery = "SELECT TOP  5 *";
@@ -49,7 +49,7 @@ namespace UnitTestProject
         public void TestSelectInfo_SummarizeDistinct()
         {
             string kqlQuery = "T | summarize by col1 , col2";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             string outputSqlQuery = test.selectInfo().TrimStart().TrimEnd();// "SELECT DISTINCT col1 , col2"
             string expectedSqlQuery = "SELECT DISTINCT col1 , col2";
@@ -59,7 +59,7 @@ namespace UnitTestProject
         public void TestSelectInfoSummarize()
         {
             string kqlQuery = "T | summarize avg(column) by state";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             string outputSqlQuery = test.selectInfo().TrimStart().TrimEnd();
             string expectedSqlQuery = "SELECT state,AVG(column)";
@@ -69,7 +69,7 @@ namespace UnitTestProject
         public void TestSelectInfo_SummarizeNameReference()
         {
             string kqlQuery = "T | summarize AvgD = avg(duration), SumD = sum(days) by Name = operationName";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             string outputSqlQuery = test.selectInfo().TrimStart().TrimEnd();//SELECT  operationName AS  Name,AVG(duration) AS  AvgD, SUM(days) AS  SumD
             string expectedSqlQuery = "SELECT  operationName AS  Name,AVG(duration) AS  AvgD, SUM(days) AS  SumD";
@@ -81,7 +81,7 @@ namespace UnitTestProject
         public void TestFromInfo()
         {
             string kqlQuery = "T ";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             string outputSqlQuery = test.fromInfo().TrimStart().TrimEnd();
             string expectedSqlQuery = "FROM T";
@@ -91,7 +91,7 @@ namespace UnitTestProject
         public void TestFromInfoJoin()
         {
             string kqlQuery = "T | join kind = fullouter  (exceptions) on $left.operation_Id == $right.operation_Id";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             string outputSqlQuery = test.fromInfo().TrimStart().TrimEnd();
             string expectedSqlQuery = "FROM T FULL OUTER JOIN ((exceptions)) ON T.operation_Id=exceptions.operation_Id";
@@ -102,7 +102,7 @@ namespace UnitTestProject
         public void TestWhereInfo_FunctionCall_isnotnull()
         {
             string kqlQuery = "T | where isnotnull(resultCode)";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             string outputSqlQuery = test.whereInfo().TrimStart().TrimEnd();
             string expectedSqlQuery = "WHERE resultCode IS NOT NULL";
@@ -113,7 +113,7 @@ namespace UnitTestProject
         public void TestWhereInfo_MultipleExpressions_AndOr()
         {
             string kqlQuery = "T | where a > 10 and c < 5 or d > 6 ";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             string outputSqlQuery = test.whereInfo().TrimStart().TrimEnd();
             string expectedSqlQuery = "WHERE  a > 10 AND c < 5 OR d > 6";
@@ -124,7 +124,7 @@ namespace UnitTestProject
         public void TestWhereInfo_InOperator()
         {
             string kqlQuery = "T | where col in ('value1', 'value2')";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             string outputSqlQuery = test.whereInfo().TrimStart().TrimEnd();
             string expectedSqlQuery = "WHERE col IN  ('value1', 'value2')";
@@ -135,7 +135,7 @@ namespace UnitTestProject
         public void TestWhereInfo_FunctionCall_tolong()
         {
             string kqlQuery = "T | where a > tolong(1100)";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             string outputSqlQuery = test.whereInfo().TrimStart().TrimEnd();
             string expectedSqlQuery = "WHERE a > CAST(1100 as bigint )";
@@ -152,7 +152,7 @@ namespace UnitTestProject
         public void TestGroupByInfo_NoNameReference()
         {
             string kqlQuery = "T | summarize avg(duration) by name";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             string outputSqlQuery = test.groupByInfo().TrimStart().TrimEnd(); // "GROUP BY  name"
             string expectedSqlQuery = "GROUP BY  name";
@@ -162,7 +162,7 @@ namespace UnitTestProject
         public void TestGroupByInfo_NameReference()
         {
             string kqlQuery = "T | summarize AvgD = avg(duration), SumD = sum(days) by Name=operationName, RollNumber";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             string outputSqlQuery = test.groupByInfo().TrimStart().TrimEnd();// "GROUP BY operationName,  RollNumber"
             string expectedSqlQuery = "GROUP BY operationName,  RollNumber";
@@ -176,7 +176,7 @@ namespace UnitTestProject
         public void TestHavingInfo_AggregateFunctions()
         {
             string kqlQuery = "T | summarize count(Orders) by State| where count(Orders) > 5";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             test.separateWhereHaving();
             string outputSqlQuery = test.havingInfo().TrimStart().TrimEnd();
@@ -188,7 +188,7 @@ namespace UnitTestProject
         public void TestOrderByInfo_descending()
         {
             string kqlQuery = "T | project name, timestamp| order by timestamp desc nulls last";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.traverseTree(kqlQuery);
             string outputSqlQuery = test.orderByInfo().TrimStart().TrimEnd();
             string expectedSqlQuery = "ORDER BY  timestamp DESC";
@@ -198,7 +198,7 @@ namespace UnitTestProject
         public void TestPreprocessingInfo()
         {
             string kqlQuery = "T | project a | where a == 1 and b in ((Table |  where a > 5 )) ";
-            TestQueries test = new TestQueries();
+            KqltoSqlTranslatorClass test = new KqltoSqlTranslatorClass();
             test.gettingSqlQuery(kqlQuery);
             Dictionary<string, Kusto.Language.Syntax.SyntaxElement> allNestedTables = test.allNestedTables;
             //Dictionary<string, Kusto.Language.Syntax.SyntaxElement> expectedNestedTables = new Dictionary<string, Kusto.Language.Syntax.SyntaxElement>();

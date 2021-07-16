@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace Test
 {
-    class TakeTopLimitOperator
-    {
+    class TakeTopLimitOperator : Operator
+    { 
         string output;
         Boolean isPresent = false;
         List<string> take_Literals;
@@ -25,7 +25,7 @@ namespace Test
                 
         }
 
-        public string process()
+        public override string Process()
         {
             //string output = "";
             if (isPresent)

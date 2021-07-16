@@ -12,7 +12,7 @@ namespace MvcMovie.Controllers
         public string Index()
         {
             string input = "T";
-            TestQueries t = new TestQueries();
+            KqltoSqlTranslatorClass t = new KqltoSqlTranslatorClass();
             string output;
             output = t.gettingSqlQuery(input);
             return output; 
@@ -27,7 +27,7 @@ namespace MvcMovie.Controllers
         // GET: /HelloWorld/GenerateSqlQuery
         public ActionResult GenerateSqlQuery(string kqlQuery)
         {
-            TestQueries t = new TestQueries();
+            KqltoSqlTranslatorClass t = new KqltoSqlTranslatorClass();
             string output;
             output = t.gettingSqlQuery(kqlQuery);
 
