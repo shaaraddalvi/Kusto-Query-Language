@@ -452,7 +452,7 @@ namespace Test
             string groupBy  = groupByInfo(); 
             string having  = havingInfo(); 
             string orderBy = orderByInfo();
-            output += select + from + " " + "AS " + getRandomString(3) + " " + where + groupBy + having + orderBy;
+            output += select + from + " " + "AS " + "alias" + getRandomString(3) + " " + where + groupBy + having + orderBy;
             return output;
         }
 
