@@ -27,12 +27,17 @@ namespace MvcMovie.Controllers
         // GET: /HelloWorld/GenerateSqlQuery
         public ActionResult GenerateSqlQuery(string kqlQuery)
         {
+            if (kqlQuery == null)
+            {
+                return BadRequest();
+            }
+
             KqltoSqlTranslatorClass t = new KqltoSqlTranslatorClass();
             string output;
             output = t.gettingSqlQuery(kqlQuery);
 
             //return Content("Received kqlQuery:  " + kqlQuery);
-            return Content("Converted SQL query : \n " + output);
+            return Content(output);
         }
 
         // 
