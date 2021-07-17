@@ -451,13 +451,20 @@ namespace Test
             string where  = whereInfo();
             string groupBy  = groupByInfo(); 
             string having  = havingInfo(); 
-            string orderBy = orderByInfo(); 
-            output += select + from + where + groupBy + having + orderBy;
+            string orderBy = orderByInfo();
+            output += select + from + " " + "AS " + "alias" + getRandomString(3) + " " + where + groupBy + having + orderBy;
             return output;
         }
 
 
+        private static Random random = new Random();
 
+        private string getRandomString(int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
 
 
     }
